@@ -1,0 +1,281 @@
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local root = character:WaitForChild("HumanoidRootPart")
+local camera = workspace.CurrentCamera
+
+--// SETTINGS
+local ATTACK_DELAY = 2.5
+local LOOK_THRESHOLD = 0.85
+
+--// only once per executor/session
+
+local entity = game:GetObjects("rbxassetid://139300382333735")[1]
+entity.Parent = workspace
+
+if not entity.PrimaryPart then
+	entity.PrimaryPart = entity:FindFirstChildWhichIsA("BasePart", true)
+end
+
+local primary = entity.PrimaryPart
+
+if not primary then
+	warn("No PrimaryPart found for Hungry entity.")
+	return
+end
+
+--// freeze parts
+for _, v in pairs(entity:GetDescendants()) do
+	if v:IsA("BasePart") then
+		v.Anchored = true
+		v.CanCollide = false
+	end
+end
+
+--// Make OOGA BOOGAAAA collidable
+local ooga = entity:FindFirstChild("OOGA BOOGAAAA", true)
+
+if ooga and ooga:IsA("BasePart") then
+	ooga.CanCollide = true
+	ooga.Anchored = true
+	ooga.Massless = false
+end
+
+--// spawn in front
+entity:PivotTo(root.CFrame * CFrame.new(0, 0, -8))
+
+local spawn = Instance.new("Sound")
+spawn.SoundId = "rbxassetid://132196014722097"
+spawn.Volume = 3
+spawn.PlaybackSpeed = 1.1
+spawn.Parent = primary
+spawn:Play() 
+
+--// scream
+local scream = Instance.new("Sound")
+scream.SoundId = "rbxassetid://6219323436"
+scream.Volume = 3
+scream.PlaybackSpeed = 1.1
+scream.Parent = primary
+
+local ambience = Instance.new("Sound")
+ambience.SoundId = "rbxassetid://136992416500756"
+ambience.Volume = 1
+ambience.PlaybackSpeed = 1
+ambience.Parent = primary
+ambience.Looped =  true
+ambience:Play() 
+
+local prepare = Instance.new("Sound")
+prepare.SoundId = "rbxassetid://6351509719"
+prepare.Volume = 2
+prepare.PlaybackSpeed = 1.2
+prepare.Parent = primary
+prepare.Looped =  true
+
+local state = "alive"
+
+--// LOOK CHECK
+local function IsLookingAtEntity()
+	if not entity or not entity.Parent then
+		return false
+	end
+
+	local camPos = camera.CFrame.Position
+	local lookDir = camera.CFrame.LookVector
+
+	for _, part in ipairs(entity:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local dir = part.Position - camPos
+			local dist = dir.Magnitude
+
+			if dist > 0 then
+				dir = dir.Unit
+
+				if lookDir:Dot(dir) > LOOK_THRESHOLD then
+					local params = RaycastParams.new()
+					params.FilterType = Enum.RaycastFilterType.Blacklist
+					params.FilterDescendantsInstances = {character}
+
+					local result = workspace:Raycast(camPos, dir * dist, params)
+
+					if result and result.Instance and result.Instance:IsDescendantOf(entity) then
+						return true
+					end
+				end
+			end
+		end
+	end
+
+	return false
+end
+
+--// DESPAWN
+local function DespawnEntity(giveBadge)
+	if state == "dead" then
+		return
+	end
+
+	state = "dead"
+
+	for _, v in pairs(entity:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Anchored = false
+			v.CanCollide = false
+		end
+	end
+
+	local badgeDone = false
+	local parentConn
+
+	--// badge fires EXACTLY when entity leaves workspace
+
+	local bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+	bv.Velocity = Vector3.new(0, -160, 0)
+	bv.Parent = primary
+
+	task.wait(2)
+
+	if entity and entity.Parent then
+		entity:Destroy()
+	end
+
+	--// fallback safety
+	if giveBadge and entity.Parent == nil and not badgeDone then
+		badgeDone = true
+
+		if parentConn then
+			parentConn:Disconnect()
+		end
+	end
+end
+
+--// ATTACK
+local function Attack()
+	if state ~= "alive" then
+		return
+	end
+
+	state = "attacking"
+
+	local tween = TweenService:Create(
+		primary,
+		TweenInfo.new(0.2, Enum.EasingStyle.Linear),
+		{
+			CFrame = root.CFrame
+		}
+	)
+
+prepare:Play() 
+
+	tween:Play()
+	tween.Completed:Wait()
+	
+	scream:Play() 
+
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local function killOneShot()
+    local damageRemote = ReplicatedStorage:FindFirstChild("LocalDamage", true) or ReplicatedStorage:FindFirstChild("ChangeHealth", true)
+    
+    if damageRemote and damageRemote:IsA("RemoteEvent") then
+        damageRemote:FireServer(25, "SittingItOut", 1, nil)
+        damageRemote:FireServer("Damage", 25)
+        print("ngol")
+    else
+        print("Ä‘Ã©o Ä‘Æ°á»£c")
+    end
+end
+
+task.spawn(function() 
+killOneShot()
+end) 
+
+local healthLabel = game.Players.LocalPlayer.PlayerGui.Main.Health.TextLabel
+
+task.wait(1)
+
+if tonumber(healthLabel.Text) == 0 then
+
+    task.spawn(function()
+        while true do
+            task.wait(0.5)
+
+            local playerGui = game.Players.LocalPlayer.PlayerGui
+            local entityPage = playerGui.Main.AfterDeath.Document.EntityPage
+            local imgLabel = entityPage.DeathFrame.Entities.Button.ImageLabel
+
+            imgLabel.Image = "rbxassetid://132521264834740"
+            imgLabel.ImageColor3 = Color3.fromRGB(255, 255, 255)
+
+            entityPage.DeathFrame.EntityName.Text = "OBLIVION"
+            playerGui.Main.AfterDeath.Document.ScorePage.OverseerNotes.Text = "Do not look away! Loser!"
+        end
+    end)
+end
+
+	--// CAMERA SHAKE
+	local original = camera.CFrame
+	local duration = 2
+	local start = tick()
+
+	while true do
+		local t = tick() - start
+		local alpha = t / duration
+
+		if alpha >= 1 then
+			break
+		end
+
+		local drop =
+			(-6 * math.exp(-t * 6)) +
+			(2.5 * math.exp(-t * 10) * math.sin(t * 25))
+
+		local rebound =
+			2 * math.exp(-t * 4) * math.sin(t * 12)
+
+		local y = drop + rebound
+
+		camera.CFrame =
+			original *
+			CFrame.new(0, y, 0)
+
+		RunService.RenderStepped:Wait()
+	end
+
+	camera.CFrame = original
+
+	--// NO BADGE ON DAMAGE PATH
+	DespawnEntity(false)
+end
+
+--// LOOK-AWAY DESPAWN
+task.spawn(function()
+	while state == "alive" and entity and entity.Parent do
+		if not IsLookingAtEntity() then
+			DespawnEntity(true)
+			break
+		end
+
+		RunService.RenderStepped:Wait()
+	end
+end)
+
+--// ATTACK CHECK
+task.delay(ATTACK_DELAY, function()
+	if state ~= "alive" then
+		return
+	end
+
+	if IsLookingAtEntity() then
+		Attack()
+	else
+		DespawnEntity(true)
+	end
+end)
