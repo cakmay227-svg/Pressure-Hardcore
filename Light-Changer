@@ -1,0 +1,86 @@
+local MODEL_ID = "rbxassetid://115648290467680"
+
+print("[START] Script Ä‘Ã£ cháº¡y, báº¯t Ä‘áº§u thiáº¿t láº­p...")
+
+local function cleanAndColorModel(model, targetColor, anchor)
+    for _, child in pairs(model:GetDescendants()) do
+        if child:IsA("ParticleEmitter") then
+            child.Color = ColorSequence.new(targetColor)
+            child.Parent = anchor 
+        elseif child:IsA("Light") then
+            child:Destroy() -- ÄÃ£ xÃ³a PointLight
+        end
+    end
+
+    for _, child in pairs(model:GetDescendants()) do
+        if child:IsA("BasePart") or child:IsA("MeshPart") then
+            child:Destroy()
+        end
+    end
+end
+
+local function checkAndSpawn(object)
+    local successPath, path = pcall(function() return object:GetFullName() end)
+    if not successPath or not path then return end
+    
+    if path:find("%.Lights%.Neon") or path:find("%.Lights%.SmallNeon") or path:find("%.Lights%.Nec") then
+        if not object:FindFirstChild("ModelSpawned") then
+            local marker = Instance.new("BoolValue")
+            marker.Name = "ModelSpawned"
+            marker.Parent = object
+            
+            print("[FOUND] PhÃ¡t hiá»‡n má»¥c tiÃªu phÃ¹ há»£p táº¡i: " .. object.Name)
+            
+            task.spawn(function()
+                local objects
+                local success = pcall(function()
+                    objects = game:GetObjects(MODEL_ID)
+                end)
+                
+                if not success or not objects or #objects == 0 then
+                    print("[ERROR] KhÃ´ng thá»ƒ láº¥y Ä‘Æ°á»£c Object tá»« ID.")
+                    return
+                end
+                
+                local mainModel = objects[1]
+                local neonColor = object.Color
+                local neonCFrame = object.CFrame
+                
+                local anchor = Instance.new("Part")
+                anchor.Size = Vector3.new(0.1, 0.1, 0.1)
+                anchor.Transparency = 1
+                anchor.Anchored = true -- ÄÃ£ sá»­a thÃ nh cÃ´ng chá»¯ Anchored á»Ÿ Ä‘Ã¢y
+                anchor.CanCollide = false
+                anchor.CFrame = neonCFrame
+                anchor.Parent = workspace
+                
+                cleanAndColorModel(mainModel, neonColor, anchor)
+                
+                if mainModel:IsA("Model") then
+                    mainModel:Destroy() 
+                end
+                
+                print("[SUCCESS] ÄÃ£ bung hiá»‡u á»©ng (KhÃ´ng Light) táº¡i: " .. object.Name)
+            end)
+        end
+    end
+end
+
+task.spawn(function()
+    local allObjects = workspace:GetDescendants()
+    for i = 1, #allObjects do
+        local object = allObjects[i]
+        if object and object:IsA("BasePart") then
+            checkAndSpawn(object)
+        end
+        if i % 100 == 0 then task.wait() end 
+    end
+end)
+
+workspace.DescendantAdded:Connect(function(object)
+    if object:IsA("BasePart") then
+        task.defer(checkAndSpawn, object)
+    end
+end)
+
+print("[INIT] ÄÃ£ sá»­a lá»—i chÃ­nh táº£. FPS á»•n Ä‘á»‹nh!")
