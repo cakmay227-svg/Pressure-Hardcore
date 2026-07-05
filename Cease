@@ -1,0 +1,303 @@
+-- Báº£ng lÆ°u trá»¯ Ã¢m thanh sau khi táº£i xong
+local CachedSounds = {}
+
+-- HÃ m táº£i Ã¢m thanh báº¥t Ä‘á»“ng bá»™ Ä‘á»ƒ trÃ¡nh ngháº½n luá»“ng
+local function PreloadSound(soundlink, filename)
+    task.spawn(function()
+        local url = soundlink
+        local FileName = filename
+        if not isfile(FileName..".mp3") then
+            writefile(FileName..".mp3", game:HttpGet(url))
+        end
+        CachedSounds[filename] = (getcustomasset or getsynasset)(FileName..".mp3")
+    end)
+end
+
+-- Táº£i song song cáº£ 3 file ngay láº­p tá»©c
+PreloadSound("https://github.com/Cyrene611/Pressure-Entity-Spawner/raw/refs/heads/main/cl.mp3", "Cease_Spawn_1")
+PreloadSound("https://github.com/Cyrene611/Pressure-Entity-Spawner/raw/refs/heads/main/Spawn.mp3.mp3", "Cease_Spawn_2")
+PreloadSound("https://github.com/Cyrene611/Pressure-Entity-Spawner/raw/refs/heads/main/moving.mp3.mp3", "Cease_Moving")
+
+-- =================================================================
+-- PHáº¦N KHá»žI CHáº Y Äá»’NG THá»œI 2 Ã‚M THANH SPAWN Äá»˜C Láº¬P (NGAY KHI CHáº Y SCRIPT)
+-- =================================================================
+task.spawn(function()
+    -- Äá»£i cáº£ 2 file spawn náº¡p xong vÃ o bá»™ nhá»› Ä‘á»‡m
+    repeat task.wait() until CachedSounds["Cease_Spawn_1"] and CachedSounds["Cease_Spawn_2"]
+    
+    -- Khá»Ÿi táº¡o Ã‚m thanh Spawn 1 (cl.mp3 - Volume 10)
+    local ImmediateSpawnSound1 = Instance.new("Sound")
+    ImmediateSpawnSound1.SoundId = CachedSounds["Cease_Spawn_1"]
+    ImmediateSpawnSound1.Volume = 10
+    ImmediateSpawnSound1.Parent = game:GetService("SoundService")
+    
+    -- Khá»Ÿi táº¡o Ã‚m thanh Spawn 2 (Spawn.mp3.mp3 - Volume 1)
+    local ImmediateSpawnSound2 = Instance.new("Sound")
+    ImmediateSpawnSound2.SoundId = CachedSounds["Cease_Spawn_2"]
+    ImmediateSpawnSound2.Volume = 1
+    ImmediateSpawnSound2.Parent = game:GetService("SoundService")
+    
+    -- Ná»• tiáº¿ng Ä‘á»“ng thá»i khÃ´ng má»™t dÃ²ng trá»…
+    ImmediateSpawnSound1:Play()
+    ImmediateSpawnSound2:Play()
+    
+    -- Tá»± dá»n dáº¹p sau khi phÃ¡t xong Ä‘á»ƒ trÃ¡nh rÃ¡c bá»™ nhá»›
+    ImmediateSpawnSound1.Ended:Connect(function() ImmediateSpawnSound1:Destroy() end)
+    ImmediateSpawnSound2.Ended:Connect(function() ImmediateSpawnSound2:Destroy() end)
+end)
+
+-- =================================================================
+-- KHá»žI CHáº Y SPAWNER CHÃNH
+-- =================================================================
+local spawnEntity = loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Pressure-Entity-Spawner"))()
+
+spawnEntity({
+    AssetId = "rbxassetid://101213140924420",
+    EntityName = "Cease",
+    MoveSpeed = 65,
+    HitboxRadius = 40,
+    ShakeRadius = 100,
+    DamageAmount = 0,    
+    InstantKill = false,
+    ConstantBloodSucking = false,
+    DelayEachDamage = 0.1,
+    
+    DelayWhenSpawned = true,     
+    Delay = 0, 
+    Rebounding = false,  
+    Reversed = false, 
+    MinRebounds = 1,   
+    MaxRebounds = 1,
+    DelayEachRebound = 3,
+    WallPenetrating = false,
+    IgnoreHiding = true,
+    RoomLimits = false,
+    RoomLimitValue = 12,
+    EntityLifeTime = "Forever",
+    
+    YOffset = Vector3.new(0, 2, 0),
+    DespawnYOffset = Vector3.new(0, 30, 0),
+    Tolerance = 0.1,
+    FlickerSpeed = 75,
+    MaxDarkness = 0.2,
+    ShakeIntensity = 1.5,
+    ShakeSpeedMultiplier = 1.5,
+    LightFlickerTime = 3,       
+    
+    EnableFlicker = false,
+    EnableShake = true,
+    EnableBlackout = false,
+    EnableBreakLights = false,
+    
+    LightBreakingRange = 35,
+    DarkenPercent = 0.11,
+    AutoScanInterval = 0.1,
+    BreakSoundId = "rbxassetid://13303926122",
+    SoundVolume = 2,
+    SoundDistance = 150,
+    ParticleTexture = "rbxassetid://257173628",
+    ParticleDuration = 0.3,
+    
+    GithubSound = "",         
+    PlayGitSoundWhenSpawned = false, 
+    SoundVolume = 1,        
+    SoundPlaybackSpeed = 1,   
+    
+    DeathImage = "rbxassetid://11417375410",
+    DeathName = "Z-C34 - Cease",
+    DeathNotes = "It's Cold",
+    DeathImageColor = Color3.fromRGB(255, 255, 255),
+    
+    OnSpawn = function(self) 
+        -- -------------------------------------------------------------
+        -- PHáº¦N NHUá»˜M XANH PHÃ’NG HIá»†N Táº I KHI THá»°C THá»‚ XUáº¤T HIá»†N
+        -- -------------------------------------------------------------
+        task.spawn(function()
+            local Config = {
+                TargetColor = Color3.fromRGB(130, 150, 255), 
+                TweenTime = 0.5,                         
+            }
+
+            local Workspace = workspace
+            local Players = game:GetService("Players")
+            local TweenService = game:GetService("TweenService") 
+            local LocalPlayer = Players.LocalPlayer
+            local Rooms = Workspace.GameplayFolder.Rooms
+
+            local tweenInfo = TweenInfo.new(Config.TweenTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local rootPart = character:WaitForChild("HumanoidRootPart", 10)
+            if not rootPart then return end
+
+            local currentRoom = nil
+
+            local touchingParts = Workspace:GetPartsInPart(rootPart)
+            for i = 1, #touchingParts do
+                local current = touchingParts[i]
+                while current and current.Parent do
+                    if current.Parent == Rooms and current:IsA("Model") then
+                        currentRoom = current
+                        break
+                    end
+                    current = current.Parent
+                end
+                if currentRoom then break end
+            end
+
+            if not currentRoom then
+                local raycastParams = RaycastParams.new()
+                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+                raycastParams.FilterDescendantsInstances = {character}
+                local rayResult = Workspace:Raycast(rootPart.Position, Vector3.new(0, -20, 0), raycastParams)
+                
+                if rayResult and rayResult.Instance then
+                    local current = rayResult.Instance
+                    while current and current.Parent do
+                        if current.Parent == Rooms and current:IsA("Model") then
+                            currentRoom = current
+                            break
+                        end
+                        current = current.Parent
+                    end
+                end
+            end
+
+            if currentRoom then
+                local descendants = currentRoom:GetDescendants()
+                for i = 1, #descendants do
+                    local obj = descendants[i]
+                    
+                    if obj:IsA("Light") then
+                        local path = obj:GetFullName()
+                        if path:find("%.Lights") or path:find("neon") or path:find("nec") then
+                            obj.Enabled = true
+                            TweenService:Create(obj, tweenInfo, {Color = Config.TargetColor}):Play() 
+                        end
+                    
+                    elseif obj:IsA("MeshPart") or obj:IsA("BasePart") then
+                        local nameLower = obj.Name:lower()
+                        if nameLower == "neon" or nameLower == "smallneon" or nameLower == "nec" then
+                            obj.Material = Enum.Material.Neon 
+                            TweenService:Create(obj, tweenInfo, {Color = Config.TargetColor}):Play() 
+                        end
+                    end
+                end
+            end
+        end)
+
+        -- -------------------------------------------------------------
+        -- PHáº¦N Xá»¬ LÃ Ã‚M THANH DI CHUYá»‚N KHI THá»°C THá»‚ XUáº¤T HIá»†N
+        -- -------------------------------------------------------------
+        task.spawn(function()
+            local entityRoot = nil
+            
+            for i = 1, 40 do
+                local ceaseModel = workspace:FindFirstChild("Cease")
+                if ceaseModel then
+                    entityRoot = ceaseModel.PrimaryPart or ceaseModel:FindFirstChildWhichIsA("BasePart")
+                    if entityRoot then break end
+                end
+                task.wait(0.05)
+            end
+
+            if entityRoot then
+                -- XÃ³a sáº¡ch Ã¢m thanh gá»‘c cá»§a spawner ngay láº­p tá»©c
+                for _, obj in ipairs(entityRoot.Parent:GetDescendants()) do
+                    if obj:IsA("Sound") then
+                        obj:Stop()
+                        obj:Destroy()
+                    end
+                end
+
+                -- Chá» náº¡p xong file Ã¢m thanh di chuyá»ƒn
+                repeat task.wait() until CachedSounds["Cease_Moving"]
+                
+                -- Khá»Ÿi táº¡o Ã¢m thanh Di chuyá»ƒn liÃªn tá»¥c (moving.mp3.mp3 - Volume 3) gáº¯n vÃ o quÃ¡i
+                local MoveSound = Instance.new("Sound")
+                MoveSound.SoundId = CachedSounds["Cease_Moving"]
+                MoveSound.Volume = 3
+                MoveSound.RollOffMaxDistance = 170
+                MoveSound.RollOffMinDistance = 10
+                MoveSound.RollOffMode = Enum.RollOffMode.Linear
+                MoveSound.Looped = true
+                MoveSound.Parent = entityRoot
+
+                -- Báº¯t Ä‘áº§u phÃ¡t tiáº¿ng di chuyá»ƒn theo quÃ¡i
+                MoveSound:Play()
+            end
+        end)
+
+        -- -------------------------------------------------------------
+        -- PHáº¦N CHá»¨C NÄ‚NG PHÃT HIá»†N CHUYá»‚N Äá»˜NG (2 HITBOX)
+        -- -------------------------------------------------------------
+        local hitboxRaycast = 120   -- Hitbox 1: Táº§m xa 120, cáº§n check tÆ°á»ng
+        local hitboxWallbang = 40    -- Hitbox 2: Táº§m gáº§n 40, xuyÃªn tÆ°á»ng
+        local player = game.Players.LocalPlayer
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        
+        local function killOneShot()
+            local damageRemote = ReplicatedStorage:FindFirstChild("LocalDamage", true) or ReplicatedStorage:FindFirstChild("ChangeHealth", true)
+            if damageRemote and damageRemote:IsA("RemoteEvent") then
+                damageRemote:FireServer(100, "SittingItOut", 1, nil)
+                damageRemote:FireServer("Damage", 100)
+                print("ngol")
+            else
+                print("Ä‘Ã©o Ä‘Æ°á»£c")
+            end
+        end
+
+        _G.MovementCheck = game:GetService("RunService").Heartbeat:Connect(function()
+            local entModel = (self and self.Model) or workspace:FindFirstChild("Cease")
+            if not entModel or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+            
+            local basePart = entModel:FindFirstChildWhichIsA("BasePart")
+            if not basePart then return end
+
+            local origin = basePart.Position
+            local pRoot = player.Character.HumanoidRootPart
+            local distance = (pRoot.Position - origin).Magnitude -- Khoáº£ng cÃ¡ch tháº³ng thá»±c táº¿
+
+            -- Chá»‰ xá»­ lÃ½ náº¿u ngÆ°á»i chÆ¡i Ä‘ang báº¥m di chuyá»ƒn
+            if player.Character.Humanoid.MoveDirection ~= Vector3.new(0, 0, 0) then
+                
+                local isKilled = false
+
+                -- [KIá»‚M TRA HITBOX 2]: XuyÃªn tÆ°á»ng táº§m gáº§n (BÃ¡n kÃ­nh 40)
+                if distance <= hitboxWallbang then
+                    isKilled = true
+                end
+
+                -- [KIá»‚M TRA HITBOX 1]: Táº§m xa 120 cÃ³ xÃ©t cáº£n tÆ°á»ng (náº¿u hitbox 2 chÆ°a kÃ­ch hoáº¡t)
+                if not isKilled and distance <= hitboxRaycast then
+                    local direction = (pRoot.Position - origin).Unit
+                    local result = workspace:Raycast(origin, direction * hitboxRaycast)
+                    if result and result.Instance:IsDescendantOf(player.Character) then
+                        isKilled = true
+                    end
+                end
+
+                -- KÃ­ch hoáº¡t káº¿t liá»…u náº¿u dÃ­nh 1 trong 2 loáº¡i hitbox
+                if isKilled then
+                    if self and self.Config and self.Config.Damage then
+                        self.Config.Damage.Enabled = true
+                    end
+                    killOneShot()
+                    if _G.MovementCheck then _G.MovementCheck:Disconnect() end
+                end
+            end
+        end)
+    end,
+    
+    OnMoveStart = function() end,
+    OnRoomEnter = function(roomName) end,
+    OnDamagePlayer = function() end,
+    OnKillPlayer = function() end,
+    OnDespawning = function() end,
+    
+    OnDespawned = function() 
+        if _G.MovementCheck then 
+            _G.MovementCheck:Disconnect() 
+        end 
+    end,
+})
