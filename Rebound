@@ -1,0 +1,71 @@
+local Rooms = workspace:FindFirstChild("Rooms") 
+    or (workspace:FindFirstChild("GameplayFolder") and workspace.GameplayFolder:FindFirstChild("Rooms"))
+    or workspace:FindFirstChild("CurrentRooms")
+
+if not Rooms then
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Folder") and obj.Name == "Rooms" then
+            Rooms = obj
+            break
+        end
+    end
+end
+
+if not Rooms then
+    warn("[LỖI] Không tìm thấy thư mục chứa các Căn Phòng (Rooms) trong Workspace!")
+    return
+end
+
+local BAN_THE_1 = "https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/ReboundSpawn1"
+local BAN_THE_2 = "https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/ReboundSpawn2"
+
+local MAX_SPAWNS = 4
+local ty_le = math.random(1, 100)
+
+if ty_le <= 40 then
+    MAX_SPAWNS = 5
+elseif ty_le <= 80 then
+    MAX_SPAWNS = 4
+else
+    MAX_SPAWNS = 3
+end
+
+local currentSpawnCount = 0
+
+local function cleanOldEntities()
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj.Name == "Smiler" then
+            for _, desc in ipairs(obj:GetDescendants()) do
+                if desc:IsA("Sound") then
+                    desc:Stop()
+                end
+            end
+            obj:Destroy()
+        end
+    end
+end
+
+local function spawnEntity(url)
+    cleanOldEntities()
+    task.wait(0.15)
+    loadstring(game:HttpGet(url))()
+end
+
+currentSpawnCount = currentSpawnCount + 1
+spawnEntity(BAN_THE_1)
+
+local connection
+connection = Rooms.ChildAdded:Connect(function(child)
+    if not child:IsA("Model") then return end
+
+    currentSpawnCount = currentSpawnCount + 1
+
+    if currentSpawnCount <= MAX_SPAWNS then
+        spawnEntity(BAN_THE_2)
+    end
+
+    if currentSpawnCount >= MAX_SPAWNS then
+        connection:Disconnect()
+        connection = nil
+    end
+end)
