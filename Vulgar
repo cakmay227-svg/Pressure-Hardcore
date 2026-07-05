@@ -1,0 +1,368 @@
+-- =================================================================
+-- ÄOáº N 1: Cáº¤U HÃŒNH Há»† THá»NG DUNG NHAM (LAVA TRAIL) + GÃ‚Y SÃT THÆ¯Æ NG
+-- =================================================================
+local ASSET_ID = 15217311499
+local SPAWN_COOLDOWN = 0.05   -- Tá»‘c Ä‘á»™ táº¡o gai (0.05 giÃ¢y/cÃ¡i)
+local MODEL_LIFETIME = 10     -- Gai tá»“n táº¡i trong 10 giÃ¢y
+local SIZE_MULTIPLIER = 2.0   -- Tá»‰ lá»‡ phÃ³ng to váº­t thá»ƒ (gáº¥p 2 láº§n gá»‘c)
+local DAMAGE_AMOUNT = 5       -- SÃ¡t thÆ°Æ¡ng khi cháº¡m vÃ o gai
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- Báº£ng quáº£n lÃ½ thá»i gian há»“i chiÃªu nháº­n sÃ¡t thÆ°Æ¡ng cá»§a ngÆ°á»i chÆ¡i
+local damageCooldowns = {}
+
+-- HÃ m xá»­ lÃ½ gÃ¢y sÃ¡t thÆ°Æ¡ng tá»« phÃ­a Client lÃªn Server
+local function dealDamageToPlayer(player)
+    if damageCooldowns[player] and tick() - damageCooldowns[player] < 0.5 then return end
+    damageCooldowns[player] = tick()
+
+    local damageRemote = ReplicatedStorage:FindFirstChild("LocalDamage", true) or ReplicatedStorage:FindFirstChild("ChangeHealth", true)
+    if damageRemote and damageRemote:IsA("RemoteEvent") then
+        damageRemote:FireServer(DAMAGE_AMOUNT, "SittingItOut", 1, nil)
+        damageRemote:FireServer("Damage", DAMAGE_AMOUNT)
+    end
+end
+
+-- HÃ m táº£i Asset báº±ng ID
+local function loadAsset()
+    local success, objects = pcall(function()
+        return game:GetObjects("rbxassetid://" .. ASSET_ID)
+    end)
+    if success and objects and #objects > 0 then
+        return objects[1]
+    else
+        warn("KhÃ´ng thá»ƒ load Ä‘Æ°á»£c ID báº±ng Executor: " .. tostring(ASSET_ID))
+        return nil
+    end
+end
+
+-- HÃ m cáº¥u hÃ¬nh dung nham, phÃ³ng to, táº¯t va cháº¡m, thÃªm Ã¡nh sÃ¡ng & gÃ¢y sÃ¡t thÆ°Æ¡ng
+local function modifyToLava(obj)
+    local descendants = obj:GetDescendants()
+    table.insert(descendants, obj)
+
+    local mainPart = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+
+    for _, descendant in ipairs(descendants) do
+        if descendant:IsA("BasePart") or descendant:IsA("MeshPart") then
+            descendant.CanCollide = false 
+            descendant.Color = Color3.fromRGB(240, 70, 0) 
+            descendant.Material = Enum.Material.CrackedLava
+            descendant.Size = descendant.Size * SIZE_MULTIPLIER
+            
+            -- Láº¯ng nghe sá»± kiá»‡n va cháº¡m Ä‘á»ƒ trá»« mÃ¡u
+            descendant.Touched:Connect(function(hit)
+                local character = hit.Parent
+                local player = Players:GetPlayerFromCharacter(character)
+                if player and character:FindFirstChildOfClass("Humanoid") and character.Humanoid.Health > 0 then
+                    dealDamageToPlayer(player)
+                end
+            end)
+        elseif descendant:IsA("SpecialMesh") then
+            descendant.VertexColor = Vector3.new(1, 0.3, 0)
+            descendant.Scale = descendant.Scale * SIZE_MULTIPLIER
+        end
+    end
+
+    -- Táº¡o PointLight mÃ u Ä‘á» gáº¯n vÃ o váº­t thá»ƒ
+    if mainPart then
+        local light = Instance.new("PointLight")
+        light.Name = "LavaLight"
+        light.Color = Color3.fromRGB(255, 0, 0)
+        light.Range = 5
+        light.Brightness = 1.5
+        light.Shadows = false
+        light.Parent = mainPart
+    end
+end
+
+-- HÃ m xá»­ lÃ½ hiá»‡u á»©ng biáº¿n máº¥t (Fade Out vÃ  ChÃ¬m xuá»‘ng)
+local function fadeOutAndDestroy(obj, currentCFrame)
+    local descendants = obj:GetDescendants()
+    table.insert(descendants, obj)
+    
+    local fadeTime = 1.0
+    local tweenInfo = TweenInfo.new(fadeTime, Enum.EasingStyle.Cubic, Enum.EasingDirection.In)
+    local sinkCFrame = currentCFrame - Vector3.new(0, 5, 0)
+    
+    if obj:IsA("Model") then
+        local cframeValue = Instance.new("CFrameValue")
+        cframeValue.Value = currentCFrame
+        cframeValue.Changed:Connect(function(newCFrame)
+            if obj.Parent then obj:PivotTo(newCFrame) end
+        end)
+        local moveTween = TweenService:Create(cframeValue, tweenInfo, {Value = sinkCFrame})
+        moveTween:Play()
+        moveTween.Completed:Connect(function() cframeValue:Destroy() end)
+    else
+        local moveTween = TweenService:Create(obj, tweenInfo, {CFrame = sinkCFrame})
+        moveTween:Play()
+    end
+    
+    for _, descendant in ipairs(descendants) do
+        if descendant:IsA("BasePart") or descendant:IsA("MeshPart") then
+            local fadeTween = TweenService:Create(descendant, tweenInfo, {Transparency = 1})
+            fadeTween:Play()
+        elseif descendant:IsA("PointLight") then
+            local lightTween = TweenService:Create(descendant, tweenInfo, {Brightness = 0})
+            lightTween:Play()
+        end
+    end
+    
+    task.wait(fadeTime)
+    obj:Destroy()
+end
+
+-- VÃ²ng láº·p chÃ­nh xá»­ lÃ½ Spawn Lava theo thá»±c thá»ƒ Vulgar
+task.spawn(function()
+    while true do
+        local entityRoot = nil
+        local vulgarModel = workspace:FindFirstChild("Vulgar")
+        
+        if vulgarModel then
+            entityRoot = vulgarModel.PrimaryPart or vulgarModel:FindFirstChildWhichIsA("BasePart")
+        end
+        
+        if entityRoot then
+            local obj = loadAsset()
+            
+            if obj then
+                modifyToLava(obj)
+                obj.Parent = workspace
+                
+                local entityPos = entityRoot.Position
+                local randomYAngle = math.rad(math.random(0, 360)) 
+                
+                local targetCFrame = CFrame.new(entityPos) * CFrame.Angles(0, randomYAngle, 0)
+                local startCFrame = CFrame.new(entityPos - Vector3.new(0, 5, 0)) * CFrame.Angles(0, randomYAngle, 0)
+                
+                if obj:IsA("Model") then
+                    obj:PivotTo(startCFrame)
+                else
+                    obj.CFrame = startCFrame
+                end
+                
+                local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
+                if obj:IsA("Model") then
+                    local cframeValue = Instance.new("CFrameValue")
+                    cframeValue.Value = startCFrame
+                    cframeValue.Changed:Connect(function(newCFrame)
+                        if obj.Parent then obj:PivotTo(newCFrame) end
+                    end)
+                    local tween = TweenService:Create(cframeValue, tweenInfo, {Value = targetCFrame})
+                    tween:Play()
+                    tween.Completed:Connect(function() cframeValue:Destroy() end)
+                else
+                    local tween = TweenService:Create(obj, tweenInfo, {CFrame = targetCFrame})
+                    tween:Play()
+                end
+                
+                task.delay(MODEL_LIFETIME, function()
+                    if obj and obj.Parent then
+                        local currentCF = obj:IsA("Model") and obj:GetPivot() or obj.CFrame
+                        fadeOutAndDestroy(obj, currentCF)
+                    end
+                end)
+            end
+        end
+        task.wait(SPAWN_COOLDOWN)
+    end
+end)
+
+
+-- =================================================================
+-- ÄOáº N 2: HÃ€M Táº¢I Ã‚M THANH Tá»ª GITHUB & KHá»žI CHáº Y Báº¢N UPDATE SPAWNER Má»šI
+-- =================================================================
+local function GitAud(soundlink, filename)
+    local url = soundlink
+    local FileName = filename
+    if not isfile(FileName..".mp3") then
+        writefile(FileName..".mp3", game:HttpGet(url))
+    end
+    return (getcustomasset or getsynasset)(FileName..".mp3")
+end
+
+-- Táº£i trÆ°á»›c Ã¢m thanh xa vÃ  gáº§n
+local SoundFarId = GitAud("https://github.com/vuivuiviu2/Tension-Mode-2.0/raw/refs/heads/main/condoxa_1.mp3", "Entity_Far")
+local SoundNearId = GitAud("https://github.com/vuivuiviu2/Tension-Mode-2.0/raw/refs/heads/main/condogan_1.mp3", "Entity_Near")
+
+-- Táº£i Spawner má»›i tá»« Github
+local spawnEntity = loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Pressure-Entity-Spawner"))()
+
+-- Cáº¥u hÃ¬nh Nhuá»™m Äá» PhÃ²ng báº±ng Tween 2 GiÃ¢y mÆ°á»£t mÃ 
+local ConfigRedRoom = {
+    TargetColor = Color3.fromRGB(200, 0, 0), -- MÃ u Ä‘á» rá»±c
+    TweenTime = 2.0,                         -- ÄÃ£ chá»‰nh thÃ nh 2.0 giÃ¢y Ä‘á»ƒ chuyá»ƒn mÃ u mÆ°á»£t mÃ  hÆ¡n
+}
+local tweenInfoRedRoom = TweenInfo.new(ConfigRedRoom.TweenTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function turnCurrentRoomRedOnlyOnce()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart", 10)
+    if not rootPart then return end
+
+    local currentRoom = nil
+    local Rooms = workspace.GameplayFolder:FindFirstChild("Rooms") or workspace.GameplayFolder.Rooms
+
+    -- QuÃ©t va cháº¡m dÆ°á»›i chÃ¢n tÃ¬m phÃ²ng trÆ°á»›c
+    local touchingParts = workspace:GetPartsInPart(rootPart)
+    for i = 1, #touchingParts do
+        local current = touchingParts[i]
+        while current and current.Parent do
+            if current.Parent == Rooms and current:IsA("Model") then
+                currentRoom = current
+                break
+            end
+            current = current.Parent
+        end
+        if currentRoom then break end
+    end
+
+    -- Báº¯n tia Raycast xuá»‘ng dÆ°á»›i Ä‘á»ƒ dá»± phÃ²ng
+    if not currentRoom then
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+        raycastParams.FilterDescendantsInstances = {character}
+        local rayResult = workspace:Raycast(rootPart.Position, Vector3.new(0, -20, 0), raycastParams)
+        
+        if rayResult and rayResult.Instance then
+            local current = rayResult.Instance
+            while current and current.Parent do
+                if current.Parent == Rooms and current:IsA("Model") then
+                    currentRoom = current
+                    break
+                end
+                current = current.Parent
+            end
+        end
+    end
+
+    -- Tiáº¿n hÃ nh nhuá»™m Ä‘á» phÃ²ng báº±ng Tween 2 giÃ¢y
+    if currentRoom then
+        local descendants = currentRoom:GetDescendants()
+        for i = 1, #descendants do
+            local obj = descendants[i]
+            
+            if obj:IsA("Light") then
+                local path = obj:GetFullName()
+                if path:find("%.Lights") or path:find("neon") or path:find("nec") then
+                    obj.Enabled = true
+                    TweenService:Create(obj, tweenInfoRedRoom, {Color = ConfigRedRoom.TargetColor}):Play()
+                end
+            elseif obj:IsA("MeshPart") or obj:IsA("BasePart") then
+                local nameLower = obj.Name:lower()
+                if nameLower == "neon" or nameLower == "smallneon" or nameLower == "nec" then
+                    obj.Material = Enum.Material.Neon
+                    TweenService:Create(obj, tweenInfoRedRoom, {Color = ConfigRedRoom.TargetColor}):Play()
+                end
+            end
+        end
+    end
+end
+
+-- Khá»Ÿi cháº¡y cáº¥u hÃ¬nh Vulgar vá»›i Spawner má»›i - GIá»® NGUYÃŠN 100% THIáº¾T Láº¬P Cá»¦A Báº N
+spawnEntity({
+    AssetId = "rbxassetid://105763862375502", 
+    EntityName = "Vulgar",                    
+    MoveSpeed = 80,                            
+    HitboxRadius = 33,                         
+    ShakeRadius = 98,                          
+    DamageAmount = 44,                          
+    InstantKill = false,
+    ConstantBloodSucking = true,
+    DelayEachDamage = 0.1,
+    
+    DelayWhenSpawned = true,     
+    Delay = 5, 
+    Rebounding = false,      
+    Reversed = false, 
+    MinRebounds = 1,                           
+    MaxRebounds = 1,                           
+    DelayEachRebound = 0,
+    WallPenetrating = false,
+    IgnoreHiding = true,
+    RoomLimits = false,
+    RoomLimitValue = 12,
+    EntityLifeTime = "Forever",
+    
+    YOffset = Vector3.new(0, 2, 0),
+    DespawnYOffset = Vector3.new(0, 30, 0),
+    Tolerance = 0.1,
+    FlickerSpeed = 70,
+    MaxDarkness = 0.2,
+    ShakeIntensity = 1,
+    ShakeSpeedMultiplier = 1.5,
+    LightFlickerTime = 0.4,       
+    
+    -- Giá»¯ nguyÃªn cÃ¡c tÃ­nh nÄƒng báº­t/táº¯t gá»‘c cá»§a báº¡n
+    EnableFlicker = false,
+    EnableShake = true,
+    EnableBlackout = false,
+    EnableBreakLights = false,
+    
+    GithubSound = "",         
+    PlayGitSoundWhenSpawned = false, 
+    SoundVolume = 1,        
+    SoundPlaybackSpeed = 1,      
+    
+    DeathImage = "rbxassetid://138739572135565",
+    DeathName = "Z-283 - VULGAR",
+    DeathNotes = "No comment at this timeâ€¦",
+    DeathImageColor = Color3.fromRGB(255, 255, 255), 
+    
+    OnSpawn = function() 
+        -- Cháº¡y script nhuá»™m Ä‘á» phÃ²ng láº­p tá»©c khi Vulgar spawn
+        task.spawn(turnCurrentRoomRedOnlyOnce)
+
+        task.spawn(function()
+            local entityRoot = nil
+            
+            for i = 1, 30 do
+                task.wait(0.1)
+                
+                local vulgarModel = workspace:FindFirstChild("Vulgar")
+                if vulgarModel then
+                    entityRoot = vulgarModel.PrimaryPart or vulgarModel:FindFirstChildWhichIsA("BasePart")
+                    if entityRoot then break end
+                end
+            end
+
+            if entityRoot then
+                -- ðŸ”Š Ã‚M THANH XA (Max 400)
+                local SoundFar = Instance.new("Sound")
+                SoundFar.Name = "FarSound"
+                SoundFar.SoundId = SoundFarId
+                SoundFar.Volume = 1
+                SoundFar.RollOffMaxDistance = 400
+                SoundFar.RollOffMinDistance = 10
+                SoundFar.RollOffMode = Enum.RollOffMode.Linear
+                SoundFar.Looped = true
+                SoundFar.Parent = entityRoot
+                SoundFar:Play()
+                
+                -- ðŸ”Š Ã‚M THANH Gáº¦N (Max 100)
+                local SoundNear = Instance.new("Sound")
+                SoundNear.Name = "NearSound"
+                SoundNear.SoundId = SoundNearId
+                SoundNear.Volume = 2.5
+                SoundNear.RollOffMaxDistance = 100
+                SoundNear.RollOffMinDistance = 5
+                SoundNear.RollOffMode = Enum.RollOffMode.Linear
+                SoundNear.Looped = true
+                SoundNear.Parent = entityRoot
+                SoundNear:Play()
+            end
+        end)
+    end,
+    
+    OnMoveStart = function() end,
+    OnRoomEnter = function(roomName) end,
+    OnDamagePlayer = function() end,
+    OnKillPlayer = function() end,
+    OnDespawning = function() end,
+    OnDespawned = function() end,
+})
