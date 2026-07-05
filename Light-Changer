@@ -1,7 +1,5 @@
 local MODEL_ID = "rbxassetid://115648290467680"
 
-print("[START] Script Ä‘Ã£ cháº¡y, báº¯t Ä‘áº§u thiáº¿t láº­p...")
-
 local function cleanAndColorModel(model, targetColor, anchor)
     for _, child in pairs(model:GetDescendants()) do
         if child:IsA("ParticleEmitter") then
@@ -29,8 +27,6 @@ local function checkAndSpawn(object)
             marker.Name = "ModelSpawned"
             marker.Parent = object
             
-            print("[FOUND] PhÃ¡t hiá»‡n má»¥c tiÃªu phÃ¹ há»£p táº¡i: " .. object.Name)
-            
             task.spawn(function()
                 local objects
                 local success = pcall(function()
@@ -38,7 +34,6 @@ local function checkAndSpawn(object)
                 end)
                 
                 if not success or not objects or #objects == 0 then
-                    print("[ERROR] KhÃ´ng thá»ƒ láº¥y Ä‘Æ°á»£c Object tá»« ID.")
                     return
                 end
                 
@@ -59,8 +54,6 @@ local function checkAndSpawn(object)
                 if mainModel:IsA("Model") then
                     mainModel:Destroy() 
                 end
-                
-                print("[SUCCESS] ÄÃ£ bung hiá»‡u á»©ng (KhÃ´ng Light) táº¡i: " .. object.Name)
             end)
         end
     end
