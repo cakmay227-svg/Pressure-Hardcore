@@ -1,0 +1,367 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Cyrene611/Pressure-Entity-Spawner/refs/heads/main/Spam"))()
+
+local function GitAud(soundlink, filename)
+    local url = soundlink
+    local FileName = filename
+    if not isfile(FileName..".mp3") then
+        writefile(FileName..".mp3", game:HttpGet(url))
+    end
+    return (getcustomasset or getsynasset)(FileName..".mp3")
+end
+
+local function PlayPreloadedSound(soundlink, vol, filename)
+    local music = Instance.new("Sound")
+    music.SoundId = GitAud(soundlink, filename)
+    music.Parent = workspace
+    music.Volume = vol
+    music.Looped = false 
+    music:Play()
+    return music
+end
+
+local musicLink = "https://github.com/Cyrene611/Pressure-Entity-Spawner/raw/refs/heads/main/Pressure%20UST%20Chaos%20Control%20%5BMr.%20Lopee's%20theme%5D%20-%20Musicmanaz.mp3"
+local activeMusic = PlayPreloadedSound(musicLink, 1.5, "ChaosControl_Lopee")
+
+local lighting = game:GetService("Lighting")
+if not lighting:FindFirstChild("MainColorCorrection") then
+    local newColor = Instance.new("ColorCorrectionEffect")
+    newColor.Name = "MainColorCorrection"
+    newColor.Parent = lighting
+end
+
+lighting.MainColorCorrection.TintColor = Color3.fromRGB(255, 255, 255)
+lighting.MainColorCorrection.Contrast = 0
+lighting.MainColorCorrection.Saturation = 0
+
+local function playReboundRedFlash()
+    task.spawn(function()
+        local TweenService = game:GetService("TweenService")
+        local cc = lighting.MainColorCorrection
+        
+        local redTween = TweenService:Create(cc, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            TintColor = Color3.fromRGB(255, 40, 40), 
+            Contrast = 0.45,
+            Saturation = -0.2
+        })
+        
+        local normalTween = TweenService:Create(cc, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            TintColor = Color3.fromRGB(255, 255, 255), 
+            Contrast = 0,
+            Saturation = 0
+        })
+        
+        redTween:Play()
+        task.wait(0.3)
+        normalTween:Play()
+    end)
+end
+
+local ShakeConfig = {
+    Intensity = 1.2,        
+    SpeedMultiplier = 1.2   
+}
+
+local function initializeBypassedShaker()
+    local playerCamera = workspace.CurrentCamera
+    if not playerCamera then return nil end
+
+    local function cameraCallback(shakeCFrame)
+        playerCamera.CFrame = playerCamera.CFrame * shakeCFrame
+    end
+
+    local renderPriority = Enum.RenderPriority.Camera.Value + 1
+    
+    local shakerInstance = {
+        ["_running"] = false,
+        ["_renderName"] = "BypassedCameraShaker",
+        ["_renderPriority"] = renderPriority,
+        ["_camShakeInstances"] = {},
+        ["_removeInstances"] = {},
+        ["_callback"] = cameraCallback
+    }
+
+    game:GetService("RunService"):BindToRenderStep(shakerInstance._renderName, shakerInstance._renderPriority, function(deltaTime)
+        local posAccumulator = Vector3.new()
+        local rotAccumulator = Vector3.new()
+        local instances = shakerInstance._camShakeInstances
+        
+        for i = 1, #instances do
+            local inst = instances[i]
+            if inst.currentFadeTime <= 0 and not inst.sustain then
+                shakerInstance._removeInstances[#shakerInstance._removeInstances + 1] = i
+            else
+                local deltaTick = inst.tick
+                local fadeTime = inst.currentFadeTime
+                local noiseVal = Vector3.new(math.noise(deltaTick, 0) * 0.5, math.noise(0, deltaTick) * 0.5, math.noise(deltaTick, deltaTick) * 0.5)
+                
+                if inst.fadeInDuration > 0 and inst.sustain then
+                    if fadeTime < 1 then
+                        fadeTime = fadeTime + deltaTime / inst.fadeInDuration
+                    else
+                        inst.sustain = false
+                    end
+                end
+                if not inst.sustain then
+                    fadeTime = fadeTime - deltaTime / inst.fadeOutDuration
+                end
+                if inst.sustain then
+                    inst.tick = deltaTick + deltaTime * inst.Roughness * inst.roughMod
+                else
+                    inst.tick = deltaTick + deltaTime * inst.Roughness * inst.roughMod * fadeTime
+                end
+                inst.currentFadeTime = fadeTime
+                
+                local shakeVector = noiseVal * inst.Magnitude * inst.magnMod * fadeTime
+                posAccumulator = posAccumulator + shakeVector * inst.PositionInfluence
+                rotAccumulator = rotAccumulator + shakeVector * inst.RotationInfluence
+            end
+        end
+        
+        for i = #shakerInstance._removeInstances, 1, -1 do
+            table.remove(instances, shakerInstance._removeInstances[i])
+            shakerInstance._removeInstances[i] = nil
+        end
+        
+        if posAccumulator.Magnitude > 0 or rotAccumulator.Magnitude > 0 then
+            local finalCFrame = CFrame.new(posAccumulator) * CFrame.Angles(math.rad(rotAccumulator.X), math.rad(rotAccumulator.Y), math.rad(rotAccumulator.Z))
+            shakerInstance._callback(finalCFrame)
+        end
+    end)
+
+    shakerInstance._running = true
+    return shakerInstance
+end
+
+local activeShaker = initializeBypassedShaker()
+
+local function shakeCamera(presetName, customMagnitude, customRoughness)
+    if not activeShaker then return end
+
+    local presets = {
+        ["Bump"] = {Magnitude = 1.5, Roughness = 3, FadeIn = 0.1, FadeOut = 0.5, PosInf = Vector3.new(0.1, 0.1, 0.1), RotInf = Vector3.new(0.5, 0.5, 0.5)},
+        ["Explosion"] = {Magnitude = 3, Roughness = 6, FadeIn = 0, FadeOut = 1.0, PosInf = Vector3.new(0.15, 0.15, 0.15), RotInf = Vector3.new(1.5, 0.5, 0.5)}
+    }
+
+    local data = presets[presetName]
+    if not data then return end
+
+    local newInstance = {
+        ["Magnitude"] = customMagnitude or data.Magnitude,
+        ["Roughness"] = customRoughness or data.Roughness,
+        ["PositionInfluence"] = data.PosInf,
+        ["RotationInfluence"] = data.RotInf,
+        ["roughMod"] = ShakeConfig.SpeedMultiplier,
+        ["magnMod"] = ShakeConfig.Intensity,
+        ["fadeOutDuration"] = data.FadeOut,
+        ["fadeInDuration"] = data.FadeIn,
+        ["sustain"] = data.FadeIn > 0,
+        ["currentFadeTime"] = data.FadeIn > 0 and 0 or 1,
+        ["tick"] = Random.new():NextNumber(-100, 100)
+    }
+
+    table.insert(activeShaker._camShakeInstances, newInstance)
+end
+
+local EntityConfig = {
+    Image1 = "rbxassetid://129861078744125",
+    Sound1 = "rbxassetid://130452258247912",
+    Flashing = {true, Color3.fromRGB(180, 0, 0)}, 
+    Shake = true
+}
+
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+local function loadSound(soundId)
+    local sound = Instance.new("Sound")
+    sound.SoundId = soundId
+    sound.Volume = 4
+    sound.Parent = game:GetService("SoundService")
+    return sound
+end
+
+local function runFastJumpscare()
+    local sound = loadSound(EntityConfig.Sound1)
+    
+    local gui = Instance.new("ScreenGui")
+    local bgFrame = Instance.new("Frame")
+    local faceLabel = Instance.new("ImageLabel")
+    
+    gui.Name = "FastJumpscareGui"
+    gui.IgnoreGuiInset = true
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    bgFrame.Name = "Background"
+    bgFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bgFrame.BorderSizePixel = 0
+    bgFrame.Size = UDim2.new(1, 0, 1, 0)
+    bgFrame.ZIndex = 999
+    
+    local screenY = gui.AbsoluteSize.Y > 0 and gui.AbsoluteSize.Y or 1080
+    local startSize = screenY / 2
+    
+    faceLabel.Name = "Face"
+    faceLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    faceLabel.BackgroundTransparency = 1
+    faceLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    faceLabel.ResampleMode = Enum.ResamplerMode.Pixelated
+    faceLabel.Size = UDim2.new(0, startSize, 0, startSize)
+    faceLabel.Image = EntityConfig.Image1
+    
+    faceLabel.Parent = bgFrame
+    bgFrame.Parent = gui
+    gui.Parent = CoreGui
+    
+    if EntityConfig.Flashing[1] then
+        task.spawn(function()
+            while gui.Parent do
+                bgFrame.BackgroundColor3 = EntityConfig.Flashing[2]
+                task.wait(0.03)
+                bgFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+                task.wait(0.03)
+            end
+        end)
+    end
+    
+    if EntityConfig.Shake then
+        task.spawn(function()
+            local originalPos = faceLabel.Position
+            while gui.Parent do
+                faceLabel.Position = originalPos + UDim2.new(0, math.random(-25, 25), 0, math.random(-25, 25))
+                faceLabel.Rotation = math.random(-10, 10)
+                task.wait()
+            end
+        end)
+    end
+    
+    sound:Play()
+    
+    local tween = TweenService:Create(faceLabel, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, screenY * 3, 0, screenY * 3),
+        ImageTransparency = 0.6
+    })
+    tween:Play()
+    
+    task.wait(1)
+    
+    gui:Destroy()
+    sound:Destroy()
+end
+
+local TweenService = game:GetService("TweenService")
+local cc = lighting.MainColorCorrection
+
+local TOTAL_FLASHES = 18
+
+for i = 1, TOTAL_FLASHES do
+    local progress = (i - 1) / (TOTAL_FLASHES - 1)
+
+    local flashSpeed = math.max(0.32 - (progress * 0.28), 0.04)
+    local resetSpeed = math.max(0.68 - (progress * 0.62), 0.06)
+
+    local currentMagnitude = 0.4 + (progress * 3.6)
+    local currentRoughness = 5 + (progress * 13)
+    shakeCamera("Explosion", currentMagnitude, currentRoughness)
+
+    local redTween = TweenService:Create(cc, TweenInfo.new(flashSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        TintColor = Color3.fromRGB(255, 45, 45), 
+        Contrast = 0.35,
+        Saturation = -0.2
+    })
+    local normalTween = TweenService:Create(cc, TweenInfo.new(resetSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        TintColor = Color3.fromRGB(255, 255, 255), 
+        Contrast = 0,
+        Saturation = 0
+    })
+
+    redTween:Play()
+    task.wait(flashSpeed)
+    normalTween:Play()
+    task.wait(resetSpeed) 
+end
+
+local spawnEntity = loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Pressure-Entity-Spawner"))()
+
+local hasJumpscared = false
+
+spawnEntity({
+    AssetId = "rbxassetid://102898555901294",
+    EntityName = "Tingue60",
+    MoveSpeed = 500,
+    HitboxRadius = 46,
+    ShakeRadius = 250,
+    DamageAmount = 33,    
+    InstantKill = true,
+    ConstantBloodSucking = true,
+    DelayEachDamage = 0.05,
+    
+    DelayWhenSpawned = true,     
+    Delay = 0.34, 
+    Rebounding = true,  
+    Reversed = false, 
+    MinRebounds = 15,   
+    MaxRebounds = 16,
+    DelayEachRebound = 0,
+     WallPenetrating = false,
+    IgnoreHiding = true,
+    RoomLimits = false,
+    RoomLimitValue = 12,
+    EntityLifeTime = "Forever",
+    
+    YOffset = Vector3.new(0, 2, 0),
+    DespawnYOffset = Vector3.new(0, 30, 0),
+    Tolerance = 0.1,
+    FlickerSpeed = 151,
+    MaxDarkness = 0.2,
+    ShakeIntensity = 16,
+    ShakeSpeedMultiplier = 1.5,
+    LightFlickerTime = 35,       
+    
+    EnableFlicker = true,
+    EnableShake = true,
+    EnableBlackout = true,
+    EnableBreakLights = false,
+    
+    LightBreakingRange = 35,
+    DarkenPercent = 0.11,
+    AutoScanInterval = 0.1,
+    BreakSoundId = "rbxassetid://13303926122",
+    SoundVolume = 2,
+    SoundDistance = 150,
+    ParticleTexture = "rbxassetid://257173628",
+    ParticleDuration = 0.3,
+    
+    GithubSound = "",         
+    PlayGitSoundWhenSpawned = false, 
+    SoundPlaybackSpeed = 1,   
+    
+    DeathImage = "rbxassetid://114453404779334",
+    DeathName = "A-60 - THE MULTIMONSTER",
+    DeathNotes = "It's stronger...",
+    DeathImageColor = Color3.fromRGB(255, 255, 255),
+    
+    OnSpawn = function() end,
+    OnMoveStart = function() end,
+    
+    OnRoomEnter = function(roomName) 
+        playReboundRedFlash()
+    end,
+    
+    OnDamagePlayer = function() end,
+    
+    OnKillPlayer = function() 
+        if not hasJumpscared then
+            hasJumpscared = true
+            task.spawn(runFastJumpscare)
+        end
+    end,
+    
+    OnDespawning = function() end,
+    
+    OnDespawned = function() 
+        if activeMusic then
+            activeMusic:Stop()
+            activeMusic:Destroy()
+        end
+    end,
+})
