@@ -317,3 +317,5 @@ end
         updateStaminaUI(Config.CurrentStamina + 12 * deltaTime)
     end
 end)
+
+print("bla") 
