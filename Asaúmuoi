@@ -1,0 +1,167 @@
+local Players = game:GetService("Players")
+local TextChatService = game:GetService("TextChatService")
+local LocalPlayer = Players.LocalPlayer
+
+local function GetPreciseServerTime()
+    return workspace:GetServerTimeNow()
+end
+
+task.spawn(function() 
+TextChatService.TextChannels.RBXGeneral:DisplaySystemMessage("<font color='#ff0000'>[Hardcore Mode (Pressure Ver)]: Script has successfully loaded! </font>")
+task.wait(2)
+TextChatService.TextChannels.RBXGeneral:DisplaySystemMessage("<font color='#ff0000'>Made by Guestly and Vuivuiviu2</font>")
+end) 
+
+task.spawn(function() 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/SprintBarv2"))() 
+end) 
+
+task.spawn(function() 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Light-Changer"))() 
+end) 
+
+local EntityList = {
+    {
+        Name = "A-60",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/A-60",
+        MinTime = 200,
+        MaxTime = 250,
+        Offset = 100000
+    },
+    {
+        Name = "Conductor",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/ConductorBLA",
+        MinTime = 130,
+        MaxTime = 200,
+        Offset = 200000
+    },
+    {
+        Name = "Cease",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/CEASECUZWHYNOT",
+        MinTime = 250,
+        MaxTime = 320,
+        Offset = 300000
+    }, 
+    {
+        Name = "Frostbite",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/photbai",
+        MinTime = 450,
+        MaxTime = 510,
+        Offset = 400000
+    },
+    {
+        Name = "Oblivion",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Oblivion",
+        MinTime = 30,
+        MaxTime = 35,
+        Offset = 500000
+    },
+    {
+        Name = "Quiet",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Imlangnaocaube",
+        MinTime = 220,
+        MaxTime = 410,
+        Offset = 600000
+    },
+    {
+        Name = "Rebound",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Rebound",
+        MinTime = 490,
+        MaxTime = 600,
+        Offset = 700000
+    },
+    {
+        Name = "True Harbinger",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/True-Harbinger",
+        MinTime = 700,
+        MaxTime = 750,
+        Offset = 800000
+    },
+    {
+        Name = "Vulgar",
+        Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Vulgar",
+        MinTime = 340,
+        MaxTime = 460,
+        Offset = 900000
+    },
+}
+
+_G.EntitySpawnLock = _G.EntitySpawnLock or false
+
+local function TrySpawn(url)
+    -- Đã có entity khác đang spawn
+    if _G.EntitySpawnLock then
+        return false, "Another entity is already spawning."
+    end
+
+    -- Khóa
+    _G.EntitySpawnLock = true
+
+    local success, result = pcall(function()
+        local source = game:HttpGet(url)
+        return loadstring(source)()
+    end)
+
+    -- Mở khóa kể cả thành công hay thất bại
+    _G.EntitySpawnLock = false
+
+    if success then
+        return true
+    else
+        warn("[Entity Spawn] Error:", result)
+        return false, result
+    end
+end
+
+local function StartEntity(data)
+    local url, minTime, maxTime, offset = unpack(data)
+    
+    coroutine.wrap(function()
+        local lastSpawnTime = GetPreciseServerTime()
+        local t = workspace:GetServerTimeNow()
+local jitter = math.floor((t - math.floor(t)) * 1e6)
+
+local BaseSeed = jitter
+for i = 1, #game.JobId do
+    BaseSeed = BaseSeed + game.JobId:byte(i) * i
+end
+
+BaseSeed += offset
+local rng = Random.new(BaseSeed)
+
+        while true do
+            local nextInterval = rng:NextInteger(minTime, maxTime)
+            local targetTime = lastSpawnTime + nextInterval
+            
+            while GetPreciseServerTime() < targetTime do
+                local remaining = targetTime - GetPreciseServerTime()
+                if remaining > 0.1 then
+                    task.wait(0.05)
+                else
+                    task.wait() 
+                end
+            end
+           
+            local bla = game:GetService("Players").LocalPlayer.PlayerFolder.DoorsOpened
+            
+            if not bla or bla.Value > 0 then
+                local success = TrySpawn(url)
+                
+                if success then
+                    lastSpawnTime = targetTime 
+                else
+                    warn("[Elite Sync] Load Error: " .. tostring(err))
+                    task.wait(5)
+                    lastSpawnTime = GetPreciseServerTime()
+                end
+            else
+                lastSpawnTime = GetPreciseServerTime()
+                task.wait(1)
+            end
+        end
+    end)()
+end
+
+for _, entityData in pairs(EntityList) do
+    StartEntity(entityData)
+end
