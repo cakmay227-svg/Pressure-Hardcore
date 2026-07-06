@@ -1,0 +1,319 @@
+-- ====================================================================
+--      THE REAL PRESSURE STAMINA UI (FULL SPRITESHEET REPLICA) + MOBILE BUTTON
+-- ====================================================================
+
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local playerGui = player:WaitForChild("PlayerGui")
+local IsPC = UserInputService.KeyboardEnabled
+
+-- 1. KHá»žI Táº O VÃ€ NHÃ‚N Báº¢N GIAO DIá»†N Gá»C Tá»ª GAME
+local mainGui = playerGui:WaitForChild("Main")
+local healthBarOriginal = mainGui:FindFirstChild("Health") or mainGui:FindFirstChild("Health", true)
+
+if not healthBarOriginal then
+    warn("âŒ [Stamina Error]: KhÃ´ng tÃ¬m tháº¥y thanh Health gá»‘c cá»§a Pressure!")
+    return
+end
+
+-- Tá»± Ä‘á»™ng dá»n dáº¹p báº£n sao cÅ© náº¿u cÃ³ Ä‘á»ƒ trÃ¡nh lá»—i chá»“ng chÃ©o giao diá»‡n
+local oldStamina = mainGui:FindFirstChild("Stamina", true)
+if oldStamina then
+	oldStamina:Destroy()
+end
+
+local staminaBar = healthBarOriginal:Clone()
+staminaBar.Name = "Stamina"
+
+staminaBar.Size = UDim2.new(0.200000003, 0, 0.100000001, 0)
+staminaBar.Parent = healthBarOriginal.Parent
+staminaBar.Visible = true
+
+local BASE_POS = UDim2.new(0.119999997, 0, 0.992489278, 0)
+staminaBar.Position = BASE_POS
+
+local baseHeight = healthBarOriginal.AbsoluteSize.Y
+
+local function UpdatePosition()
+	local extra = healthBarOriginal.AbsoluteSize.Y - baseHeight
+
+	staminaBar.Position = UDim2.new(
+		BASE_POS.X.Scale,
+		BASE_POS.X.Offset,
+		BASE_POS.Y.Scale,
+		BASE_POS.Y.Offset + extra
+	)
+end
+
+UpdatePosition()
+healthBarOriginal:GetPropertyChangedSignal("AbsoluteSize"):Connect(UpdatePosition)
+
+local staminaImageLabel = staminaBar:FindFirstChild("ImageLabel", true)
+local staminaSkull = staminaBar:FindFirstChild("Skull", true)
+
+local originalHealthColor = Color3.fromRGB(255,255,255)
+if staminaImageLabel then
+	originalHealthColor = staminaImageLabel.ImageColor3
+end
+
+local textLabel = staminaBar:FindFirstChild("TextLabel", true)
+if textLabel and textLabel:IsA("TextLabel") then
+	textLabel.Visible = false
+end
+
+local customImageLabel = Instance.new("ImageLabel")
+customImageLabel.Name = "Sprint"
+customImageLabel.Image = "rbxassetid://91944970238173"
+customImageLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+customImageLabel.Size = UDim2.new(0.7, 1, 0.7, 1)
+customImageLabel.AnchorPoint = Vector2.new(0.5,0.5)
+customImageLabel.ImageColor3 = Color3.fromRGB(185,215,255)
+customImageLabel.BackgroundTransparency = 1
+customImageLabel.ZIndex = 4
+if staminaImageLabel then
+	customImageLabel.Parent = staminaImageLabel
+else
+	customImageLabel.Parent = staminaBar
+end
+
+local mobileControls = mainGui:FindFirstChild("BaseControls", true) or mainGui:FindFirstChild("Controls", true)
+local mobileSprintButton
+
+if mobileControls then
+	local crouchButton = mobileControls:FindFirstChild("Crouch", true)
+
+	if crouchButton then
+		local old = mobileControls:FindFirstChild("Sprint")
+		if old then
+			old:Destroy()
+		end
+
+		mobileSprintButton = crouchButton:Clone()
+		mobileSprintButton.Name = "Sprint"
+		mobileSprintButton.Position = UDim2.new(0.699999988,0,-0.400000006,0)
+		mobileSprintButton.Size = UDim2.new(0.893999994,0,0.600000024,0)
+
+		local icon = mobileSprintButton:FindFirstChild("Icon", true)
+		if icon then
+			icon.Image = "rbxassetid://91944970238173"
+		end
+
+		local text = mobileSprintButton:FindFirstChild("TextLabel", true)
+		if text then
+			text.Text = "Sprint"
+		end
+
+		mobileSprintButton.Parent = crouchButton.Parent
+		mobileSprintButton.Visible = not IsPC
+	end
+end
+
+-- ====================================================================
+--          Cáº¤U HÃŒNH THÃ”NG Sá» VÃ€ TOÃ€N Bá»˜ LOGIC Há»† THá»NG
+-- ====================================================================
+
+local Config = {
+    MaxStamina = 100,
+    CurrentStamina = 100,
+    IsSprinting = false,
+    Exhausted = false,
+    Tired = false,
+    TimeSinceStopped = 0,
+    
+    NormalSpeed = 13,   
+    SprintSpeed = 21,   
+    TiredSpeed = 9,     
+    
+    SavedNormalFOV = camera.FieldOfView, 
+    FOVIncrease = 15,                     
+}
+
+local humanoid = nil
+local rootPart = nil
+local fovTween = nil
+local BaseGameSpeed = 16
+local AnimationSpeedMultiplier = 1.5
+
+local function updatePOV(targetFOV)
+    if fovTween then fovTween:Cancel() end
+    fovTween = TweenService:Create(camera, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        FieldOfView = targetFOV
+    })
+    fovTween:Play()
+end
+
+local function UpdateAnimationSpeed(multiplier)
+	if not humanoid then
+		return
+	end
+
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		return
+	end
+
+	for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+		track:AdjustSpeed(multiplier)
+	end
+end
+
+local function updateStaminaUI(targetStamina)
+    local max = Config.MaxStamina
+    local current = math.clamp(targetStamina, 0, max)
+    Config.CurrentStamina = current
+    
+    local v9 = (max - current) / 20
+    local v10 = math.floor(v9)
+    local v11 = (max - current - v10 * 20) / 5
+    local v12 = math.floor(v11)
+    
+    if staminaImageLabel then
+        staminaImageLabel.ImageRectOffset = Vector2.new(v12 * 205, v10 * 205)
+    end
+    
+    -- [UPDATE] Äá»”I MÃ€U KHI Sá»¬ Dá»¤NG: Giáº£m dáº§n tá»« MÃ€U Gá»C vá» mÃ u Äá»Ž Tá»I / XÃM KHÃ”
+    local targetColor = Color3.fromRGB(130, 35, 35):Lerp(originalHealthColor, current / max)
+    
+    if not Config.Exhausted then
+        if staminaImageLabel then staminaImageLabel.ImageColor3 = targetColor end
+        if staminaSkull then staminaSkull.ImageColor3 = targetColor end
+        if customImageLabel then customImageLabel.ImageColor3 = targetColor end
+    end
+    
+    if current <= 0 then
+        Config.Exhausted = true
+        -- Khi cáº¡n sáº¡ch thá»ƒ lá»±c, Ã©p háº³n sang mÃ u xÃ¡m má»‡t má»i
+        local exhaustedColor = Color3.fromRGB(80, 80, 80)
+        if staminaImageLabel then staminaImageLabel.ImageColor3 = exhaustedColor end
+        if staminaSkull then staminaSkull.ImageColor3 = exhaustedColor end
+        if customImageLabel then customImageLabel.ImageColor3 = exhaustedColor end
+        
+        if Config.IsSprinting then
+            Config.IsSprinting = false
+            UpdateAnimationSpeed(1)
+            Config.TimeSinceStopped = tick()
+            Config.Tired = true
+            updatePOV(Config.SavedNormalFOV)
+        end
+    else
+        if current > (max * 0.75) then
+            Config.Exhausted = false
+            if staminaImageLabel then staminaImageLabel.ImageColor3 = targetColor end
+            if staminaSkull then staminaSkull.ImageColor3 = targetColor end
+            if customImageLabel then customImageLabel.ImageColor3 = targetColor end
+        end
+    end
+end
+
+local function onCharacterAdded(char)
+    humanoid = char:WaitForChild("Humanoid")
+    rootPart = char:WaitForChild("HumanoidRootPart")
+    
+    BaseGameSpeed = humanoid.WalkSpeed
+
+humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+    if not Config.IsSprinting then
+        BaseGameSpeed = humanoid.WalkSpeed
+    end
+end)
+
+    updateStaminaUI(Config.MaxStamina)
+    
+    humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(function()
+        if humanoid.MoveDirection.Magnitude == 0 and Config.IsSprinting then
+            Config.IsSprinting = false
+            UpdateAnimationSpeed(1)
+            Config.TimeSinceStopped = tick()
+            updatePOV(Config.SavedNormalFOV)
+        end
+    end)
+end
+
+if player.Character then onCharacterAdded(player.Character) end
+player.CharacterAdded:Connect(onCharacterAdded)
+
+local function StartSprint()
+	if not Config.Exhausted and not Config.Tired and humanoid and humanoid.MoveDirection.Magnitude > 0 then
+		Config.SavedNormalFOV = camera.FieldOfView
+		Config.IsSprinting = true
+		UpdateAnimationSpeed(AnimationSpeedMultiplier)
+		updatePOV(Config.SavedNormalFOV + Config.FOVIncrease)
+	end
+end
+
+local function StopSprint()
+	if Config.IsSprinting then
+		Config.IsSprinting = false
+		UpdateAnimationSpeed(1)
+		Config.TimeSinceStopped = tick()
+		updatePOV(Config.SavedNormalFOV)
+	end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed or not IsPC then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.E then
+		if Config.IsSprinting then
+			StopSprint()
+		else
+			StartSprint()
+		end
+	end
+end)
+
+if mobileSprintButton then
+	mobileSprintButton.MouseButton1Down:Connect(function()
+		if Config.IsSprinting then
+			StopSprint()
+		else
+			StartSprint()
+		end
+	end)
+end
+
+RunService.RenderStepped:Connect(function(deltaTime)
+    if humanoid and rootPart and humanoid.Parent then
+        -- cập nhật tốc độ gốc
+if not Config.IsSprinting then
+    BaseGameSpeed = humanoid.WalkSpeed
+elseif humanoid.WalkSpeed > BaseGameSpeed then
+    -- game buff tốc độ trong lúc sprint
+    BaseGameSpeed = humanoid.WalkSpeed
+end
+
+local targetSpeed = BaseGameSpeed
+
+if Config.IsSprinting and not Config.Tired then
+    targetSpeed = BaseGameSpeed + 5
+elseif Config.Tired then
+    targetSpeed = math.max(0, BaseGameSpeed - 4)
+end
+        
+        if humanoid.MoveDirection.Magnitude > 0 then
+            local currentGameSpeed = humanoid.WalkSpeed
+            if currentGameSpeed == 0 then currentGameSpeed = 16 end 
+            
+            local speedDifference = targetSpeed - currentGameSpeed
+            local microMove = humanoid.MoveDirection * (speedDifference * deltaTime)
+            rootPart.CFrame = rootPart.CFrame + Vector3.new(microMove.X, 0, microMove.Z)
+        end
+    end
+
+    if Config.Tired and (tick() - Config.TimeSinceStopped > 3) then
+        Config.Tired = false
+    end
+    
+    if Config.IsSprinting and humanoid and humanoid.MoveDirection.Magnitude > 0 and not Config.Tired then
+        updateStaminaUI(Config.CurrentStamina - 9 * deltaTime)
+    elseif (tick() - Config.TimeSinceStopped > 1.5) and not Config.IsSprinting and Config.CurrentStamina < Config.MaxStamina then
+        updateStaminaUI(Config.CurrentStamina + 12 * deltaTime)
+    end
+end)
