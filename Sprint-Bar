@@ -294,7 +294,7 @@ local targetSpeed = BaseGameSpeed
 if Config.IsSprinting and not Config.Tired then
     targetSpeed = BaseGameSpeed + 5
 elseif Config.Tired then
-    targetSpeed = math.max(0, BaseGameSpeed - 4)
+    targetSpeed = Config.TiredSpeed
 end
         
         if humanoid.MoveDirection.Magnitude > 0 then
