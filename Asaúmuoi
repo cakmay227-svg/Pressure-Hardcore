@@ -1,5 +1,3 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Cyrene611/Pressure-Entity-Spawner/refs/heads/main/Spam"))()
-
 local function GitAud(soundlink, filename)
     local url = soundlink
     local FileName = filename
