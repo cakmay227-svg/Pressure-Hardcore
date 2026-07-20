@@ -187,11 +187,24 @@ local function GitAud(soundlink, filename)
 end
 
 -- Táº£i trÆ°á»›c Ã¢m thanh xa vÃ  gáº§n
-local SoundFarId = GitAud("https://github.com/vuivuiviu2/Tension-Mode-2.0/raw/refs/heads/main/condoxa_1.mp3", "Entity_Far")
-local SoundNearId = GitAud("https://github.com/vuivuiviu2/Tension-Mode-2.0/raw/refs/heads/main/condogan_1.mp3", "Entity_Near")
+local SoundFarId = GitAud("https://codeberg.org/qjjdjdjjd/cak/raw/branch/main/condoxa_1.mp3", "Entity_Far")
+local SoundNearId = GitAud("https://codeberg.org/qjjdjdjjd/cak/raw/branch/main/condogan_1.mp3", "Entity_Near")
 
 -- Táº£i Spawner má»›i tá»« Github
-local spawnEntity = loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Pressure-Entity-Spawner"))()
+local SpawnerFile = "Pressure-Entity-Spawner.lua"
+
+local spawnEntity
+
+if isfile(SpawnerFile) then
+	spawnEntity = loadstring(readfile(SpawnerFile))()
+else
+	local src = game:HttpGet(
+		"https://codeberg.org/qjjdjdjjd/Pressure-Files/raw/branch/main/Pressure-Entity-Spawner"
+	)
+
+	writefile(SpawnerFile, src)
+	spawnEntity = loadstring(src)()
+end
 
 -- Cáº¥u hÃ¬nh Nhuá»™m Äá» PhÃ²ng báº±ng Tween 2 GiÃ¢y mÆ°á»£t mÃ 
 local ConfigRedRoom = {
