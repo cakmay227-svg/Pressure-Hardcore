@@ -1,0 +1,655 @@
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+function GitAud(soundgit, filename)
+	local FileName = filename .. ".mp3"
+
+	if not isfile(FileName) then
+		writefile(FileName, game:HttpGet(soundgit))
+	end
+
+	return (getcustomasset or getsynasset)(FileName)
+end
+
+function CustomGitSound(soundlink, volume, filename, soundName, parent, looped)
+    local sound = Instance.new("Sound")
+
+    sound.SoundId = GitAud(soundlink, filename)
+    sound.Parent = parent or workspace
+    sound.Volume = volume or 1
+    sound.RollOffMaxDistance = 400
+    sound.RollOffMinDistance = 5
+    sound.PlaybackSpeed = 1
+    sound.Name = soundName or "bgtheme"
+    sound.Looped = looped or false
+
+    sound:Play()
+
+    return sound
+end
+
+task.spawn(function() 
+CustomGitSound(
+    "https://codeberg.org/qjjdjdjjd/cak/raw/branch/main/YTDown.com_YouTube_Vultus-Search-SEARCHLIGHTS-TRACK-PRESSUR_Media_EHsDSdQGaNc_001_1080p.mp3?raw=true",
+    1,
+    "DREadHARRDCOREEE",
+    "CAKCAKCAL",
+    workspace,
+    true
+)
+end) 
+
+local ColorEffect = Lighting:FindFirstChild("AnalogEffect")
+if not ColorEffect then
+	ColorEffect = Instance.new("ColorCorrectionEffect")
+	ColorEffect.Name = "AnalogEffect"
+	ColorEffect.Parent = Lighting
+end
+
+-- Trạng thái ban đầu
+ColorEffect.Contrast = 0
+ColorEffect.Brightness = 0
+ColorEffect.Saturation = 0
+ColorEffect.TintColor = Color3.fromRGB(255, 255, 255)
+
+-- Tween sang hiệu ứng
+local Tween = TweenService:Create(
+	ColorEffect,
+	TweenInfo.new(7, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+	{
+		Contrast = -10,
+		Brightness = -0.5,
+		Saturation = -1,
+		TintColor = Color3.fromRGB(47, 47, 47)
+	}
+)
+
+Tween:Play()
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local ContentProvider = game:GetService("ContentProvider")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HRP = Character:WaitForChild("HumanoidRootPart")
+local Humanoid = Character:WaitForChild("Humanoid")
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local TimerActive = false
+local TimerGui
+local TimerLabel
+local DreadKill
+local DestroyTimer
+
+local BlackGui = Instance.new("ScreenGui")
+BlackGui.Name = "BlackFade"
+BlackGui.IgnoreGuiInset = true
+BlackGui.ResetOnSpawn = false
+BlackGui.Enabled = false
+BlackGui.Parent = PlayerGui
+
+local BlackFrame = Instance.new("Frame")
+BlackFrame.Size = UDim2.fromScale(1, 1)
+BlackFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+BlackFrame.BorderSizePixel = 0
+BlackFrame.Parent = BlackGui
+
+local function BlackScreen(Duration)
+	BlackGui.Enabled = true
+	workspace.CAKCAKCAL:Pause()
+	task.wait(Duration or 2)
+	BlackGui.Enabled = false
+	workspace.CAKCAKCAL:Resume()
+end
+
+-- Các mức pixel
+local PixelImages = {
+	"rbxassetid://103157582067157",
+	"rbxassetid://110261017785950",
+	"rbxassetid://83432297474509",
+	"rbxassetid://115848574334262",
+	"rbxassetid://81551288442018",
+	"rbxassetid://72016071548779",
+	"rbxassetid://96915209739716",
+	"rbxassetid://137774683560980", -- Ảnh gốc
+}
+
+-- Preload toàn bộ ảnh
+do
+	local Cache = {}
+
+	for _, id in ipairs(PixelImages) do
+		local Img = Instance.new("ImageLabel")
+		Img.Image = id
+		table.insert(Cache, Img)
+	end
+
+	ContentProvider:PreloadAsync(Cache)
+
+	for _, Img in ipairs(Cache) do
+		Img:Destroy()
+	end
+end
+
+-- Part giữ BillboardGui
+local Part = Instance.new("Part")
+Part.Name = "DreadClone"
+Part.Size = Vector3.new(1, 1, 1)
+Part.Transparency = 1
+Part.Anchored = true
+Part.CanCollide = false
+Part.CanQuery = false
+Part.CanTouch = false
+Part.CFrame = HRP.CFrame + HRP.CFrame.LookVector * 100000
+Part.Parent = workspace
+
+-- BillboardGui
+local Billboard = Instance.new("BillboardGui")
+Billboard.Name = "ImageBillboard"
+Billboard.Parent = Part
+Billboard.AlwaysOnTop = true
+Billboard.Size = UDim2.fromOffset(300, 300)
+Billboard.MaxDistance = math.huge
+Billboard.DistanceLowerLimit = math.huge
+Billboard.DistanceUpperLimit = math.huge
+
+-- Image
+local Image = Instance.new("ImageLabel")
+Image.Parent = Billboard
+Image.AnchorPoint = Vector2.new(0.5, 0.5)
+Image.Position = UDim2.fromScale(0.5, 0.5)
+Image.Size = UDim2.fromScale(0.88, 0.88)
+Image.BackgroundTransparency = 1
+Image.ImageTransparency = 1
+Image.Image = PixelImages[1]
+
+-- Fade + Zoom
+TweenService:Create(
+	Image,
+	TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	{
+		Size = UDim2.fromScale(1, 1),
+		ImageTransparency = 0
+	}
+):Play()
+
+-- Pixel -> Sharp
+task.spawn(function()
+	task.wait(0.03)
+
+	for _, id in ipairs(PixelImages) do
+		Image.Image = id
+		task.wait(1)
+	end
+end)
+
+task.wait(29)
+
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HRP = Character:WaitForChild("HumanoidRootPart")
+local Dread
+
+-- Asset ID của model
+local AssetId = "rbxassetid://11358102735"
+
+-- Lưu vị trí hiện tại của player
+local OldCFrame = HRP.CFrame
+
+-- Spawn bên phải LocalPlayer 100000 studs
+local SpawnCFrame = HRP.CFrame * CFrame.new(100000, 0, 0)
+
+-- Spawn model
+local Model
+
+local ModelCache = "DreadModelLoaded"
+
+if not isfile(ModelCache) then
+	writefile(ModelCache, "11358102735")
+end
+
+local CachedId = readfile(ModelCache)
+
+Model = game:GetObjects("rbxassetid://"..CachedId)[1]
+Model.Parent = workspace
+
+-- Tắt toàn bộ Light trong model
+for _, obj in ipairs(Model:GetDescendants()) do
+	if obj:IsA("Light") then
+		obj.Enabled = false
+	end
+end
+
+-- Xóa tất cả Model tên "OpenDoor"
+for _, obj in ipairs(Model:GetDescendants()) do
+	if obj:IsA("Model") and obj.Name == "OpenDoor" then
+		obj:Destroy()
+	end
+end
+
+-- Đặt PrimaryPart
+if not Model.PrimaryPart then
+	Model.PrimaryPart = Model:FindFirstChildWhichIsA("BasePart", true)
+end
+
+assert(Model.PrimaryPart, "Model không có BasePart.")
+
+-- Đặt vị trí model
+Model:PivotTo(SpawnCFrame)
+
+-- Đặt vị trí + xoay ngẫu nhiên 1 trong 4 hướng
+local Yaws = {0, 90, 180, 270}
+local Rotation = Yaws[math.random(#Yaws)]
+
+Model:PivotTo(
+	SpawnCFrame * CFrame.fromOrientation(
+		0,
+		math.rad(Rotation),
+		0
+	)
+)
+
+-- Anchor toàn bộ BasePart
+for _, obj in ipairs(Model:GetDescendants()) do
+	if obj:IsA("BasePart") then
+		obj.Anchored = true
+	end
+end
+
+-- Tạo Prompt cho MetalDoor
+local MetalDoor = Model:FindFirstChild("Metal Door", true)
+
+DestroyTimer = function()
+
+	TimerActive = false
+
+	if TimerGui then
+		TimerGui:Destroy()
+		TimerGui = nil
+		TimerLabel = nil
+	end
+
+end
+
+DreadKill = function()
+
+	if Debounce then
+		return
+	end
+
+	Debounce = true
+
+	DestroyTimer()
+
+	workspace.CAKCAKCAL:Destroy()
+
+	local damageRemote =
+		game:GetService("ReplicatedStorage"):FindFirstChild("LocalDamage", true)
+		or
+		game:GetService("ReplicatedStorage"):FindFirstChild("ChangeHealth", true)
+
+	if damageRemote and damageRemote:IsA("RemoteEvent") then
+
+		damageRemote:FireServer(1000,"SittingItOut",1,nil)
+		damageRemote:FireServer("Damage",1000)
+
+	end
+
+	task.spawn(function()
+
+		while true do
+
+			local playerGui = game.Players.LocalPlayer.PlayerGui
+
+			local entityPage = playerGui.Main.AfterDeath.Document.EntityPage
+			local imgLabel = entityPage.DeathFrame.Entities.Button.ImageLabel
+
+			imgLabel.Image = "rbxassetid://125161714707878"
+			imgLabel.ImageColor3 = Color3.new(1,1,1)
+
+			entityPage.DeathFrame.EntityName.Text = "Z-222 - DREAD"
+			playerGui.Main.AfterDeath.Document.ScorePage.OverseerNotes.Text = "???"
+
+			task.wait(0.5)
+
+		end
+
+	end)
+
+	ColorEffect:Destroy()
+
+end
+
+if MetalDoor then
+	local PromptPart
+
+	if MetalDoor:IsA("Model") then
+		PromptPart = MetalDoor.PrimaryPart or MetalDoor:FindFirstChildWhichIsA("BasePart", true)
+	elseif MetalDoor:IsA("BasePart") then
+		PromptPart = MetalDoor
+	end
+
+	if PromptPart then
+		local Prompt = Instance.new("ProximityPrompt")
+		Prompt.ActionText = "Exit"
+		Prompt.ObjectText = "Metal Door"
+		Prompt.KeyboardKeyCode = Enum.KeyCode.E
+		Prompt.MaxActivationDistance = 10
+		Prompt.RequiresLineOfSight = false
+		Prompt.Parent = PromptPart
+
+		Prompt.Triggered:Connect(function(player)
+			if player ~= LocalPlayer then
+				return
+			end
+			
+			DestroyTimer()
+
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+
+			if root then
+			BlackScreen(2)
+				root.CFrame = OldCFrame
+			end
+
+	if Dread then
+		Dread:Destroy()
+	end
+
+			Model:Destroy()
+		end)
+	end
+end
+
+-- Teleport LocalPlayer vào giữa model
+task.spawn(function()
+	BlackScreen(2)
+end)
+
+
+
+HRP.CFrame = Model:GetPivot()
+
+TimerActive = true
+
+TimerGui = Instance.new("ScreenGui")
+TimerGui.Name = "DreadTimer"
+TimerGui.IgnoreGuiInset = true
+TimerGui.ResetOnSpawn = false
+TimerGui.Parent = PlayerGui
+
+TimerLabel = Instance.new("TextLabel")
+TimerLabel.Parent = TimerGui
+TimerLabel.AnchorPoint = Vector2.new(0.5,0)
+TimerLabel.Position = UDim2.new(0.5,0,0.015,0)
+TimerLabel.Size = UDim2.fromOffset(250,55)
+
+TimerLabel.BackgroundTransparency = 1
+TimerLabel.Text = "80s"
+
+TimerLabel.Font = Enum.Font.SpecialElite
+TimerLabel.TextScaled = true
+
+TimerLabel.TextColor3 = Color3.new(1,1,1)
+
+TimerLabel.TextStrokeTransparency = 0.6
+TimerLabel.TextStrokeColor3 = Color3.new(0,0,0)
+
+task.spawn(function()
+
+	for i = 80,0,-1 do
+
+		if not TimerActive then
+			return
+		end
+
+		if not Humanoid or Humanoid.Health <= 0 then
+			DestroyTimer()
+			return
+		end
+
+		TimerLabel.Text = i.."s"
+
+		if i == 0 then
+			DreadKill()
+			return
+		end
+
+		task.wait(1)
+
+	end
+
+end)
+
+workspace.DreadClone:Destroy()
+
+--========================================================
+-- DREAD SETUP
+--========================================================
+
+local RunService = game:GetService("RunService")
+
+local Alive = true
+
+-- Kích thước map
+local MapCF, MapSize = Model:GetBoundingBox()
+
+local HalfX = MapSize.X / 2 - 4
+local HalfY = MapSize.Y / 2 - 4
+local HalfZ = MapSize.Z / 2 - 4
+
+-- Chiều cao LocalPlayer
+
+local Height = Humanoid.HipHeight + HRP.Size.Y + 2
+
+---------------------------------------------------
+-- Model Dread
+---------------------------------------------------
+
+Dread = Instance.new("Model")
+Dread.Name = "Dread"
+Dread.Parent = workspace
+
+local Root = Instance.new("Part")
+Root.Name = "Root"
+Root.Size = Vector3.new(2, Height, 2)
+Root.Transparency = 1
+Root.CanCollide = false
+Root.CanTouch = true
+Root.CanQuery = false
+Root.Anchored = true
+Root.Parent = Dread
+
+Dread.PrimaryPart = Root
+
+---------------------------------------------------
+-- Billboard
+---------------------------------------------------
+
+local Particle = Instance.new("ParticleEmitter")
+Particle.Texture = "rbxassetid://137774683560980"
+Particle.Rate = 0
+Particle.Speed = NumberRange.new(0)
+Particle.Lifetime = NumberRange.new(math.huge)
+Particle.Size = NumberSequence.new(8)
+Particle.LockedToPart = true
+Particle.Parent = Root
+
+Particle:Emit(1)
+
+local Debounce = false
+
+Root.Touched:Connect(function(hit)
+
+	local Character = hit.Parent
+
+	if not Character then
+		return
+	end
+
+	if Character ~= LocalPlayer.Character then
+		return
+	end
+
+	DreadKill()
+
+end)
+
+---------------------------------------------------
+-- Spawn ngẫu nhiên trong map
+---------------------------------------------------
+
+--========================================================
+-- RANDOM FLOOR POSITION
+--========================================================
+
+local RayParams = RaycastParams.new()
+RayParams.FilterType = Enum.RaycastFilterType.Include
+RayParams.FilterDescendantsInstances = {Model}
+
+local function RandomPoint()
+	local radius = 40
+
+	local offset = Vector3.new(
+		math.random(-radius, radius),
+		50,
+		math.random(-radius, radius)
+	)
+
+	local origin = HRP.Position + offset
+
+	local result = workspace:Raycast(
+		origin,
+		Vector3.new(0, -150, 0),
+		RayParams
+	)
+
+	if result then
+		return result.Position + Vector3.new(0, Height / 2, 0)
+	end
+
+	return HRP.Position + Vector3.new(0, Height / 2, 0)
+end
+
+local Result = workspace:Raycast(
+	HRP.Position + HRP.CFrame.LookVector * 15 + Vector3.new(0, 50, 0),
+	Vector3.new(0, -150, 0),
+	RayParams
+)
+
+if Result then
+	Root.CFrame = CFrame.lookAt(
+		Result.Position + Vector3.new(0, Height / 2, 0),
+		HRP.Position
+	)
+end
+
+---------------------------------------------------
+-- Khi map bị xóa
+---------------------------------------------------
+
+Model.Destroying:Connect(function()
+
+	Alive = false
+
+	if Dread then
+		Dread:Destroy()
+	end
+
+ColorEffect:Destroy() 
+workspace.CAKCAKCAL:Destroy()
+DestroyTimer()
+
+end)
+
+--========================================================
+-- DREAD MOVEMENT
+--========================================================
+
+local SPEED = 12
+
+local TargetPosition = RandomPoint()
+
+local function PickTarget()
+	TargetPosition = RandomPoint()
+end
+
+PickTarget()
+
+RunService.Heartbeat:Connect(function(dt)
+
+	if not Alive then
+		return
+	end
+
+	if not Dread.Parent then
+		return
+	end
+
+	local Pos = Root.Position
+
+	local Offset = TargetPosition - Pos
+	local Distance = Offset.Magnitude
+
+	if Distance < 2 then
+		PickTarget()
+		return
+	end
+
+	local Step = math.min(Distance, SPEED * dt)
+
+	local NewPos = Pos + Offset.Unit * Step
+
+	Root.CFrame = CFrame.lookAt(
+		NewPos,
+		NewPos + Offset.Unit
+	)
+
+end)
+
+----------------------------------------------------
+-- Teleport trước mặt player mỗi 4-7 giây
+----------------------------------------------------
+
+task.spawn(function()
+
+	while Alive do
+
+		task.wait(math.random(4,7))
+
+		if not Alive then
+			break
+		end
+
+		local Char = LocalPlayer.Character
+		local Hum = Char and Char:FindFirstChild("HumanoidRootPart")
+
+		if Hum then
+
+			local Pos =
+				Hum.Position +
+				Hum.CFrame.LookVector * 15
+
+			Root.CFrame =
+				CFrame.lookAt(
+					Pos,
+					Hum.Position
+				)
+
+			PickTarget()
+
+		end
+
+	end
+
+end)
+
+Humanoid.Died:Connect(function()
+
+	DestroyTimer()
+
+end)
