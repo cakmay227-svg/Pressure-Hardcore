@@ -1,10 +1,14 @@
-local function GitAud(soundlink, filename)
-    local url = soundlink
-    local FileName = filename
-    if not isfile(FileName..".mp3") then
-        writefile(FileName..".mp3", game:HttpGet(url))
-    end
-    return (getcustomasset or getsynasset)(FileName..".mp3")
+local function CacheFile(url, filename)
+	if not isfile(filename) then
+		writefile(filename, game:HttpGet(url))
+	end
+
+	return filename
+end
+
+local function GitAud(url, filename)
+	local file = CacheFile(url, filename)
+	return (getcustomasset or getsynasset)(file)
 end
 
 local function PlayPreloadedSound(soundlink, vol, filename)
@@ -17,8 +21,12 @@ local function PlayPreloadedSound(soundlink, vol, filename)
     return music
 end
 
-local musicLink = "https://github.com/Cyrene611/Pressure-Entity-Spawner/raw/refs/heads/main/Pressure%20UST%20Chaos%20Control%20%5BMr.%20Lopee's%20theme%5D%20-%20Musicmanaz.mp3"
-local activeMusic = PlayPreloadedSound(musicLink, 1.5, "ChaosControl_Lopee")
+local musicLink = "https://codeberg.org/qjjdjdjjd/cak/raw/branch/main/Pressure%20UST%20Chaos%20Control%20%5BMr.%20Lopee&%2339%3Bs%20theme%5D%20-%20Musicmanaz%20%281%29.mp3"
+local activeMusic = PlayPreloadedSound(
+    musicLink,
+    1.5,
+    "ChaosControl_Lopee.mp3"
+)
 
 local lighting = game:GetService("Lighting")
 if not lighting:FindFirstChild("MainColorCorrection") then
@@ -278,7 +286,12 @@ for i = 1, TOTAL_FLASHES do
     task.wait(resetSpeed) 
 end
 
-local spawnEntity = loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Pressure-Entity-Spawner"))()
+local SpawnerFile = CacheFile(
+	"https://codeberg.org/qjjdjdjjd/Pressure-Files/raw/branch/main/Pressure-Entity-Spawner",
+	"Pressure-Entity-Spawner.lua"
+)
+
+local spawnEntity = loadstring(readfile(SpawnerFile))()
 
 local hasJumpscared = false
 
