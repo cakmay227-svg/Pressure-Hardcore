@@ -1,0 +1,253 @@
+local Players = game:GetService("Players")
+local TextChatService = game:GetService("TextChatService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Logic đồng bộ thời gian cơ bản: 
+-- Sử dụng số nguyên để tính toán slot thay vì thời gian thực
+local START_TIME = 0
+local PendingEntities = {}
+local GameStarted = false
+
+local function Hash(str)
+    local h = 0
+    for i = 1, #str do
+        h = (h * 31 + str:byte(i)) % 2147483647
+    end
+    return h
+end
+
+local remote = game.ReplicatedStorage.Events.Subtitles
+
+local function Subtitle(text, duration)
+    local conn = getconnections(remote.OnClientEvent)[1]
+    if not conn then
+        warn("No connection found!")
+        return
+    end
+
+    local ok, err = pcall(conn.Function, text, duration)
+    print(ok, err)
+end
+
+task.spawn(function() 
+TextChatService.TextChannels.RBXGeneral:DisplaySystemMessage("<font color='#ff0000'>[Hardcore Mode (Pressure Ver)]: Script has successfully loaded! </font>")
+task.wait(2)
+TextChatService.TextChannels.RBXGeneral:DisplaySystemMessage("<font color='#ff0000'>Made by Guestly and Vuivuiviu2</font>")
+end) 
+
+task.spawn(function() 
+loadstring(game:HttpGet("https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Sprint%20Bar.lua"))() 
+end) 
+
+task.spawn(function() 
+loadstring(game:HttpGet("https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Light-Changer.lua"))() 
+end) 
+
+task.spawn(function() 
+loadstring(game:HttpGet("https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/MutatedAbomination"))() 
+end) 
+
+local EntityList = {
+    {Name = "A-60", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/A-60.lua", MinTime = 333, MaxTime = 666, Chance = 50, Offset = 100000, PauseCooldownWhenOn = true},
+    {Name = "Conductor", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Conductor.lua", MinTime = 170, MaxTime = 200, Chance = 60, Offset = 200000, PauseCooldownWhenOn = false},
+    {Name = "Cease", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Cease.lua", MinTime = 250, MaxTime = 320, Chance = 75, Offset = 300000, PauseCooldownWhenOn = false},
+    {Name = "Frostbite", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Frostbite.lua", MinTime = 450, MaxTime = 510, Chance = 30, Offset = 400000, PauseCooldownWhenOn = true},
+    {Name = "Oblivion", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Oblivion.lua", MinTime = 30, MaxTime = 35, Chance = 90, Offset = 500000, PauseCooldownWhenOn = false},
+    {Name = "Quiet", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Quiet.lua", MinTime = 367, MaxTime = 410, Chance = 55, Offset = 600000, PauseCooldownWhenOn = false},
+    {Name = "Rebound", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Rebound.lua", MinTime = 490, MaxTime = 600, Chance = 43, Offset = 700000, PauseCooldownWhenOn = false},
+    {Name = "Harbinger", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Harbinger.lua", MinTime = 700, MaxTime = 750, Chance = 20, Offset = 800000, PauseCooldownWhenOn = true},
+    {Name = "Vulgar", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Vulgar.lua", MinTime = 340, MaxTime = 460, Chance = 45, Offset = 900000, PauseCooldownWhenOn = false},
+    {Name = "Dread", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Dread", MinTime = 1200, MaxTime = 1500, Chance = 90, Offset = 1000000, PauseCooldownWhenOn = true},
+    {Name = "Mutated Squiddld", Url = "https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Mutated%20Saui%20ye", MinTime = 25, MaxTime = 35, Chance = 100, Offset = 1100000, PauseCooldownWhenOn = false},
+}
+
+_G.PauseCooldown = false
+_G.PauseStarted = 0
+_G.TotalPausedTime = 0
+
+local function TrySpawn(data)
+
+    if data.PauseCooldownWhenOn then
+        _G.PauseCooldown = true
+        _G.PauseStarted = workspace:GetServerTimeNow()
+    end
+
+    task.spawn(function()
+        local success, result = pcall(function()
+            return loadstring(game:HttpGet(data.Url))()
+        end)
+
+        if not success then
+            warn("Spawn Error: "..tostring(result))
+        end
+
+        if data.PauseCooldownWhenOn then
+            _G.TotalPausedTime += workspace:GetServerTimeNow() - _G.PauseStarted
+            _G.PauseCooldown = false
+        end
+    end)
+end
+
+local DebugLogs = {}
+
+task.spawn(function()
+
+    local doors
+
+    repeat
+        task.wait()
+        local folder = LocalPlayer:FindFirstChild("PlayerFolder")
+        if folder then
+            doors = folder:FindFirstChild("DoorsOpened")
+        end
+    until doors
+
+
+    local oldValue = doors.Value
+
+    repeat
+        RunService.Heartbeat:Wait()
+    until doors.Value > oldValue
+
+
+    GameStarted = true
+
+end)
+
+local function DebugPrint(...)
+    local msg = table.concat({...}, " ")
+    print(msg)
+
+    table.insert(DebugLogs, msg)
+
+    if setclipboard then
+        setclipboard(table.concat(DebugLogs, "\n"))
+    end
+end
+
+local function StartEntity(data)
+    task.spawn(function()
+
+        repeat
+            RunService.Heartbeat:Wait()
+        until GameStarted
+
+
+        local seed = Hash(game.JobId) + data.Offset
+        local lastSlot = -1
+
+        while true do
+
+            -- pause timer
+            while _G.PauseCooldown do
+                RunService.Heartbeat:Wait()
+            end
+
+
+            local now = (workspace:GetServerTimeNow() - START_TIME) - _G.TotalPausedTime
+
+
+            -- slot dựa theo MaxTime để tạo khoảng thời gian
+            local slot = math.floor(now / data.MaxTime)
+
+
+            -- tránh xử lý lại slot cũ
+            if slot == lastSlot then
+                RunService.Heartbeat:Wait()
+                continue
+            end
+
+
+            local slotRng = Random.new(seed + slot)
+
+
+            -- thời điểm spawn riêng của slot này
+            local spawnDelay = slotRng:NextNumber(data.MinTime, data.MaxTime)
+            local spawnTime = (slot * data.MaxTime) + spawnDelay
+
+
+            -- đợi tới đúng thời điểm
+            repeat
+                RunService.Heartbeat:Wait()
+
+                now = (workspace:GetServerTimeNow() - START_TIME) - _G.TotalPausedTime
+
+            until now >= spawnTime and not _G.PauseCooldown
+
+
+            lastSlot = slot
+
+
+            -- chance
+            local chanceRng = Random.new(seed + slot + 99999)
+
+            if chanceRng:NextInteger(1,100) <= data.Chance then
+
+                local doors = LocalPlayer:FindFirstChild("PlayerFolder") 
+                    and LocalPlayer.PlayerFolder:FindFirstChild("DoorsOpened")
+
+
+                if doors and doors.Value > 0 then
+
+
+                    -- Oblivion không cần chờ cửa
+                    if data.Name == "Oblivion" then
+
+                        TrySpawn(data)
+
+
+                    else
+
+                        if not PendingEntities[data.Name] then
+
+                            PendingEntities[data.Name] = true
+
+                            local oldValue = doors.Value
+
+
+                            task.spawn(function()
+
+                                while PendingEntities[data.Name] do
+
+                                    RunService.Heartbeat:Wait()
+
+
+                                    if doors.Value > oldValue then
+
+                                        PendingEntities[data.Name] = nil
+
+                                        TrySpawn(data)
+
+                                        break
+                                    end
+                                end
+
+                            end)
+
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- Khởi chạy
+for _, entity in pairs(EntityList) do
+    StartEntity(entity)
+end
+
+task.spawn(function() 
+Subtitle("Pressure Hardcore Mode Activated!", 3)
+
+task.wait(3)
+
+Subtitle("Credits to Guestly and Vuivuiviu2 for making the mode", 3)
+
+task.wait(3)
+
+Subtitle("Enjoy!", 3)
+end) 
+
+print("Hardcore Pressure Sync Mode Active")
