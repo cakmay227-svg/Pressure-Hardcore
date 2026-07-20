@@ -1,6 +1,27 @@
 local Rooms = workspace:FindFirstChild("Rooms") 
     or (workspace:FindFirstChild("GameplayFolder") and workspace.GameplayFolder:FindFirstChild("Rooms"))
     or workspace:FindFirstChild("CurrentRooms")
+    
+    local Cache = {}
+
+local function LoadScript(url, filename)
+    if Cache[filename] then
+        return loadstring(Cache[filename])()
+    end
+
+    local code
+
+    if isfile(filename..".lua") then
+        code = readfile(filename..".lua")
+    else
+        code = game:HttpGet(url)
+        writefile(filename..".lua", code)
+    end
+
+    Cache[filename] = code
+
+    return loadstring(code)()
+end
 
 if not Rooms then
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -16,8 +37,8 @@ if not Rooms then
     return
 end
 
-local BAN_THE_1 = "https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/ReboundSpawn1"
-local BAN_THE_2 = "https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/ReboundSpawn2"
+local BAN_THE_1 = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Rebound1"
+local BAN_THE_2 = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Rebound2"
 
 local MAX_SPAWNS = 4
 local ty_le = math.random(1, 100)
@@ -48,7 +69,12 @@ end
 local function spawnEntity(url)
     cleanOldEntities()
     task.wait(0.15)
-    loadstring(game:HttpGet(url))()
+
+    if url == BAN_THE_1 then
+        LoadScript(url, "Rebound_Main")
+    else
+        LoadScript(url, "Rebound_Respawn")
+    end
 end
 
 currentSpawnCount = currentSpawnCount + 1
