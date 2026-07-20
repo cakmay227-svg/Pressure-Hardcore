@@ -49,17 +49,17 @@ loadstring(game:HttpGet("https://codeberg.org/qjjdjdjjd/HardcorePressureEntities
 end) 
 
 local EntityList = {
-    {Name = "A-60", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/A-60.lua", MinTime = 333, MaxTime = 666, Chance = 50, Offset = 100000, PauseCooldownWhenOn = true},
-    {Name = "Conductor", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Conductor.lua", MinTime = 170, MaxTime = 200, Chance = 60, Offset = 200000, PauseCooldownWhenOn = false},
-    {Name = "Cease", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Cease.lua", MinTime = 250, MaxTime = 320, Chance = 75, Offset = 300000, PauseCooldownWhenOn = false},
-    {Name = "Frostbite", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Frostbite.lua", MinTime = 450, MaxTime = 510, Chance = 30, Offset = 400000, PauseCooldownWhenOn = true},
+    {Name = "A-60", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Asa%C3%BAmuoi", MinTime = 333, MaxTime = 666, Chance = 50, Offset = 100000, PauseCooldownWhenOn = true},
+    {Name = "Conductor", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/ConductorBLA", MinTime = 170, MaxTime = 200, Chance = 60, Offset = 200000, PauseCooldownWhenOn = false},
+    {Name = "Cease", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/CEASECUZWHYNOT", MinTime = 250, MaxTime = 320, Chance = 75, Offset = 300000, PauseCooldownWhenOn = false},
+    {Name = "Frostbite", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/photbai", MinTime = 450, MaxTime = 510, Chance = 30, Offset = 400000, PauseCooldownWhenOn = true},
     {Name = "Oblivion", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Oblivion.lua", MinTime = 30, MaxTime = 35, Chance = 90, Offset = 500000, PauseCooldownWhenOn = false},
-    {Name = "Quiet", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Quiet.lua", MinTime = 367, MaxTime = 410, Chance = 55, Offset = 600000, PauseCooldownWhenOn = false},
-    {Name = "Rebound", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Rebound.lua", MinTime = 490, MaxTime = 600, Chance = 43, Offset = 700000, PauseCooldownWhenOn = false},
-    {Name = "Harbinger", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Harbinger.lua", MinTime = 700, MaxTime = 750, Chance = 20, Offset = 800000, PauseCooldownWhenOn = true},
-    {Name = "Vulgar", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Vulgar.lua", MinTime = 340, MaxTime = 460, Chance = 45, Offset = 900000, PauseCooldownWhenOn = false},
-    {Name = "Dread", Url = "https://codeberg.org/qjjdjdjjd/HardcorePressureEntities/raw/branch/main/Dread", MinTime = 1200, MaxTime = 1500, Chance = 90, Offset = 1000000, PauseCooldownWhenOn = true},
-    {Name = "Mutated Squiddld", Url = "https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Mutated%20Saui%20ye", MinTime = 25, MaxTime = 35, Chance = 100, Offset = 1100000, PauseCooldownWhenOn = false},
+    {Name = "Quiet", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Imlangnaocaube", MinTime = 367, MaxTime = 410, Chance = 55, Offset = 600000, PauseCooldownWhenOn = false},
+    {Name = "Rebound", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Rebound", MinTime = 490, MaxTime = 600, Chance = 43, Offset = 700000, PauseCooldownWhenOn = false},
+    {Name = "Harbinger", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Harbinger", MinTime = 700, MaxTime = 750, Chance = 20, Offset = 800000, PauseCooldownWhenOn = true},
+    {Name = "Vulgar", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/Vulgar", MinTime = 340, MaxTime = 460, Chance = 45, Offset = 900000, PauseCooldownWhenOn = false},
+    {Name = "Dread", Url = "https://raw.githubusercontent.com/cakmay227-svg/Pressure-Hardcore/refs/heads/main/dread", MinTime = 1200, MaxTime = 1500, Chance = 90, Offset = 1000000, PauseCooldownWhenOn = true},
+    {Name = "Mutated Squiddle", Url = "https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Mutated%20Saui%20ye", MinTime = 25, MaxTime = 35, Chance = 100, Offset = 1100000, PauseCooldownWhenOn = false},
 }
 
 _G.PauseCooldown = false
@@ -75,8 +75,21 @@ local function TrySpawn(data)
 
     task.spawn(function()
         local success, result = pcall(function()
-            return loadstring(game:HttpGet(data.Url))()
-        end)
+
+    local File = "Entity_" .. data.Name:gsub("%s+", "_") .. ".lua"
+
+    local Source
+
+    if isfile(File) then
+        Source = readfile(File)
+    else
+        Source = game:HttpGet(data.Url)
+        writefile(File, Source)
+    end
+
+    return loadstring(Source)()
+
+end)
 
         if not success then
             warn("Spawn Error: "..tostring(result))
