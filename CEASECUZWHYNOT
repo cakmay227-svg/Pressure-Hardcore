@@ -4,19 +4,20 @@ local CachedSounds = {}
 -- HÃ m táº£i Ã¢m thanh báº¥t Ä‘á»“ng bá»™ Ä‘á»ƒ trÃ¡nh ngháº½n luá»“ng
 local function PreloadSound(soundlink, filename)
     task.spawn(function()
-        local url = soundlink
-        local FileName = filename
-        if not isfile(FileName..".mp3") then
-            writefile(FileName..".mp3", game:HttpGet(url))
+        local file = filename..".mp3"
+
+        if not isfile(file) then
+            writefile(file, game:HttpGet(soundlink))
         end
-        CachedSounds[filename] = (getcustomasset or getsynasset)(FileName..".mp3")
+
+        CachedSounds[filename] = (getcustomasset or getsynasset)(file)
     end)
 end
 
 -- Táº£i song song cáº£ 3 file ngay láº­p tá»©c
-PreloadSound("https://github.com/Cyrene611/Pressure-Entity-Spawner/raw/refs/heads/main/cl.mp3", "Cease_Spawn_1")
-PreloadSound("https://github.com/Cyrene611/Pressure-Entity-Spawner/raw/refs/heads/main/Spawn.mp3.mp3", "Cease_Spawn_2")
-PreloadSound("https://github.com/Cyrene611/Pressure-Entity-Spawner/raw/refs/heads/main/moving.mp3.mp3", "Cease_Moving")
+PreloadSound("https://codeberg.org/qjjdjdjjd/cak/raw/branch/main/cl.mp3", "Cease_Spawn_1")
+PreloadSound("https://codeberg.org/qjjdjdjjd/cak/raw/branch/main/Spawn.mp3.mp3", "Cease_Spawn_2")
+PreloadSound("https://codeberg.org/qjjdjdjjd/cak/raw/branch/main/moving.mp3.mp3", "Cease_Moving")
 
 -- =================================================================
 -- PHáº¦N KHá»žI CHáº Y Äá»’NG THá»œI 2 Ã‚M THANH SPAWN Äá»˜C Láº¬P (NGAY KHI CHáº Y SCRIPT)
@@ -49,7 +50,20 @@ end)
 -- =================================================================
 -- KHá»žI CHáº Y SPAWNER CHÃNH
 -- =================================================================
-local spawnEntity = loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/Pressure-Entity-Spawner"))()
+local function CacheFile(url, filename)
+    if not isfile(filename) then
+        writefile(filename, game:HttpGet(url))
+    end
+
+    return filename
+end
+
+local SpawnerFile = CacheFile(
+    "https://codeberg.org/qjjdjdjjd/Pressure-Files/raw/branch/main/Pressure-Entity-Spawner",
+    "Pressure-Entity-Spawner.lua"
+)
+
+local spawnEntity = loadstring(readfile(SpawnerFile))()
 
 spawnEntity({
     AssetId = "rbxassetid://101213140924420",
